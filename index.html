@@ -883,40 +883,23 @@ function formatarDataBR(valor) {
 
 // ===== WHATSAPP COM MENSAGEM PADRÃO + CAPTURA DE LOCALIZAÇÃO =====
 function enviarWhatsApp(ferramentaId, telefone, nomeFer, dataRet, dataPrev) {
-  // 1) Abrir WhatsApp com mensagem padrão
+  // Montar link para página de localização
   var urlBase = window.location.origin + window.location.pathname;
-var linkLocalizacao = urlBase + '?acao=localizar&id=' + ferramentaId + '&nome=' + encodeURIComponent(nomeFer);
+  var linkCurto = urlBase + '?acao=localizar&id=' + ferramentaId;
 
-// Versão curta para caber no WhatsApp
-var linkCurto = urlBase + '?acao=localizar&id=' + ferramentaId;
+  // Mensagem com link para o colaborador clicar
+  var mensagem = encodeURIComponent(
+    "Olá! \n\n" +
+    "Você retirou *" + nomeFer + "* (" + ferramentaId + ") em " + dataRet + ".\n" +
+    "Previsão de devolução: " + dataPrev + "\n\n" +
+    " *Clique no link abaixo para enviar sua localização e atualizar o sistema:*\n" +
+    linkCurto + "\n\n" +
+    "Ao clicar, o navegador vai pedir permissão — é só autorizar \n\n" +
+    "Obrigado!"
+  );
 
-var mensagem = encodeURIComponent(
-  "Olá! ✋\n\n" +
-  "Você retirou *" + nomeFer + "* (" + ferramentaId + ") em " + dataRet + ".\n" +
-  "📅 Previsão de devolução: " + dataPrev + "\n\n" +
-  "👉 *Clique no link abaixo para enviar sua localização e atualizar o sistema:*\n" +
-  linkCurto + "\n\n" +
-  "Ao clicar, o navegador vai pedir permissão — é só autorizar 🌐✅\n\n" +
-  "Obrigado!"
-);
+  // Abrir WhatsApp
   window.open('https://wa.me/55' + telefone + '?text=' + mensagem, '_blank');
-
-  // 2) Perguntar se quer capturar localização
-  if (confirm("📍 O colaborador está com a ferramenta agora?\n\nClique OK para capturar a localização e atualizar o sistema.")) {
-    if (navigator.geolocation) {
-      navigator.geolocation.getCurrentPosition(
-        function(pos) {
-          atualizarLocalizacao(ferramentaId, pos.coords.latitude, pos.coords.longitude);
-        },
-        function() {
-          showToast("Erro", "Não foi possível obter localização. Verifique as permissões.", "❌", "bg-red-600/30 border-red-500");
-        },
-        { enableHighAccuracy: true, timeout: 10000 }
-      );
-    } else {
-      showToast("Erro", "Geolocalização não suportada.", "❌", "bg-red-600/30 border-red-500");
-    }
-  }
 }
 
 function atualizarLocalizacao(ferramentaId, lat, lng) {
