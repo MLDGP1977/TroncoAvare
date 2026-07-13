@@ -883,22 +883,22 @@ function formatarDataBR(valor) {
 
 // ===== WHATSAPP COM MENSAGEM PADRÃO + CAPTURA DE LOCALIZAÇÃO =====
 function enviarWhatsApp(ferramentaId, telefone, nomeFer, dataRet, dataPrev) {
-  // Montar link para página de localização
-  var urlBase = window.location.origin + window.location.pathname;
+  // ===== URL DO APPS SCRIPT (WEB APP) =====
+  var urlBase = 'https://script.google.com/macros/s/AKfycbwF4bmc-jhpZ5zocETdh1BCgfbiZETj7FwkOJpTH-KjNQ2fZbv9EWrsjflVhkpF5xhLWw/exec';
   var linkCurto = urlBase + '?acao=localizar&id=' + ferramentaId;
 
-  // Mensagem com link para o colaborador clicar
+  // ===== MENSAGEM =====
   var mensagem = encodeURIComponent(
     "Olá! \n\n" +
     "Você retirou *" + nomeFer + "* (" + ferramentaId + ") em " + dataRet + ".\n" +
     "Previsão de devolução: " + dataPrev + "\n\n" +
-    " *Clique no link abaixo para enviar sua localização e atualizar o sistema:*\n" +
+    "*Clique no link abaixo para enviar sua localização e atualizar o sistema:*\n" +
     linkCurto + "\n\n" +
     "Ao clicar, o navegador vai pedir permissão — é só autorizar \n\n" +
     "Obrigado!"
   );
 
-  // Abrir WhatsApp
+  // ===== ABRIR WHATSAPP =====
   window.open('https://wa.me/55' + telefone + '?text=' + mensagem, '_blank');
 }
 
