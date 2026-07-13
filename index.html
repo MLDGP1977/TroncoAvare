@@ -565,8 +565,8 @@
     let dadosColetados = { idFerramenta: "", matricula: "", foto: "", lat: "", lng: "" };
 
     window.onload = function () {
-      // Estabelece ligação e sincroniza automaticamente os dados do banco de dados na planilha
       buscarDadosDoServidor();
+        setTimeout(iniciarAutoRefresh, 5000);
     };
 
 function buscarDadosDoServidor() {
@@ -2760,6 +2760,120 @@ function salvarSetoresDosUsuarios() {
       localStorage.setItem("controltool_setores", JSON.stringify(setores));
     } catch (e) {}
   }
+}
+
+// ===== AUTO-REFRESH EM BACKGROUND =====
+var intervaloAutoRefresh = null;
+
+function iniciarAutoRefresh() {
+  // Se já existe, não criar outro
+  if (intervaloAutoRefresh) return;
+
+  console.log('🔄 Auto-refresh iniciado (a cada 30s)');
+
+  intervaloAutoRefresh = setInterval(function() {
+    // Buscar dados atualizados do servidor (silencioso)
+    if (typeof API_URL === "undefined" || !API_URL) return;
+
+    // Indicador visual sutil no título
+    var originalTitle = document.title;
+    document.title = '🔄 Atualizando...';
+
+    fetch(API_URL + '?acao=listarTudo')
+      .then(function(r) { return r.json(); })
+      .then(function(dados) {
+        if (dados && dados.status === 'sucesso') {
+          var alterou = false;
+
+          // Comparar se emprestimos mudaram (novos, localização, status)
+          if (dados.emprestimos && Array.isArray(dados.emprestimos)) {
+            var antigos = JSON.stringify(baseDeDados.emprestimos || []);
+            var novos = JSON.stringify(dados.emprestimos);
+            if (antigos !== novos) {
+              baseDeDados.emprestimos = dados.emprestimos;
+              alterou = true;
+            }
+          }
+
+          if (dados.ferramentas && Array.isArray(dados.ferramentas)) {
+            baseDeDados.ferramentas = dados.ferramentas;
+          }
+          if (dados.usuarios && Array.isArray(dados.usuarios)) {
+            baseDeDados.usuarios = dados.usuarios;
+          }
+
+          // Se mudou, atualizar a tela
+          if (alterou) {
+            console.log('🔄 Dados atualizados — renderizando...');
+            renderizarDashboard();
+            // Toast silencioso só se a página estiver visível
+            if (!document.hidden) {
+              showToast('🔄 Painel atualizado!', 'Novas informações sincronizadas.', '✅', 'bg-sky-600/30 border-sky-500');
+            }
+          }
+        }
+      })
+      .catch(function() {
+        // Falha silenciosa — não perturbar o usuário
+      })
+      .finally(function() {
+        document.title = originalTitle;
+      });
+  }, 30000); // 30 segundos
+
+  // Parar quando a página ficar oculta (economia)
+  document.addEventListener('visibilitychange', function() {
+    if (document.hidden) {
+      // Pausar quando a aba não estiver visível
+      if (intervaloAutoRefresh) {
+        clearInterval(intervaloAutoRefresh);
+        intervaloAutoRefresh = null;
+        console.log('⏸️ Auto-refresh pausado (aba oculta)');
+      }
+    } else {
+      // Retomar quando a aba ficar visível
+      console.log('▶️ Auto-refresh retomado (aba visível)');
+      // Forçar uma atualização imediata ao voltar
+      buscarDadosAtualizados();
+      iniciarAutoRefresh();
+    }
+  });
+}
+
+// Função para buscar dados manualmente (usada ao voltar da aba)
+function buscarDadosAtualizados() {
+  if (typeof API_URL === "undefined" || !API_URL) return;
+
+  return fetch(API_URL + '?acao=listarTudo')
+    .then(function(r) { return r.json(); })
+    .then(function(dados) {
+      if (dados && dados.status === 'sucesso') {
+        var alterou = false;
+
+        if (dados.emprestimos && Array.isArray(dados.emprestimos)) {
+          var antigos = JSON.stringify(baseDeDados.emprestimos || []);
+          var novos = JSON.stringify(dados.emprestimos);
+          if (antigos !== novos) {
+            baseDeDados.emprestimos = dados.emprestimos;
+            alterou = true;
+          }
+        }
+
+        if (dados.ferramentas && Array.isArray(dados.ferramentas)) {
+          baseDeDados.ferramentas = dados.ferramentas;
+        }
+        if (dados.usuarios && Array.isArray(dados.usuarios)) {
+          baseDeDados.usuarios = dados.usuarios;
+        }
+
+        if (alterou) {
+          renderizarDashboard();
+        }
+        return alterou;
+      }
+      return false;
+    })
+    .catch(function() { return false; });
 }
 
     function showToast(titulo, mensagem, icone = "🔔", classesTema = "bg-slate-800 border-amber-500") {
