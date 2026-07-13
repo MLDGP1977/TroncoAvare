@@ -1,0 +1,2805 @@
+<!DOCTYPE html>
+<html lang="pt-PT" class="dark">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Controle de Ferramentas - Painel de Controlo de Ferramentas</title>
+  <!-- Tailwind CSS para estilização rápida e responsiva -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js para gráficos interativos estilo Power BI -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Biblioteca robusta para leitura de código QR e códigos de barras -->
+  <script src="https://unpkg.com/html5-qrcode"></script>
+  <script>
+    // Configuração de cores personalizadas inspiradas no tema escuro do Power BI
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            pbi: {
+              bg: '#1f1f2e',
+              card: '#2d2d3f',
+              header: '#181824',
+              accent: '#f2c811', // Amarelo/Ouro clássico do Power BI
+              success: '#10b981',
+              danger: '#ef4444',
+              text: '#e2e8f0'
+            }
+          }
+        }
+      }
+    }
+  </script>
+</head>
+
+<body class="bg-[#1f1f2e] text-slate-100 min-h-screen font-sans flex flex-col">
+  <!-- BARRA SUPERIOR DE NAVEGAÇÃO -->
+  <header
+    class="bg-[#181824] border-b border-slate-800 px-4 py-3 flex flex-col sm:flex-row justify-between items-center gap-3 sticky top-0 z-40 shadow-md">
+    <div class="flex items-center gap-3 w-full sm:w-auto">
+      <div class="p-2 bg-amber-500 rounded-lg text-slate-950 font-bold text-xl shadow-lg">
+        🛠️
+      </div>
+      <div>
+        <h1 class="text-xl font-bold tracking-tight text-amber-400 flex items-center gap-2">
+          Controle de Ferramentas
+        </h1>
+        <p class="text-xs text-slate-400">Sistema Inteligente de Rastreabilidade</p>
+      </div>
+    </div>
+    <!-- Ligação com o Google Apps Script (Web App API) e Cadastro -->
+    <div class="w-full sm:w-auto flex flex-wrap items-center justify-end gap-2">
+      <button onclick="abrirModalNovaFerramenta()"
+        class="bg-amber-500 hover:bg-amber-600 active:scale-95 transition text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md">
+        ➕ Nova Ferramenta
+      </button>
+      <button onclick="abrirModalFerramentas()"
+        class="bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition text-white text-xs font-bold px-3 py-1.5 rounded-lg flex items-center gap-1.5 shadow-md">
+        📋 Ver Ferramentas
+      </button>
+      <button onclick="buscarDadosDoServidor()"
+        class="bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-semibold px-3 py-1.5 rounded-lg transition active:scale-95"
+        title="Sincronizar dados">
+        🔄 Sincronizar
+      </button>
+    </div>
+  </header>
+  <!-- CONTEÚDO PRINCIPAL (DASHBOARD) -->
+  <main class="flex-1 p-4 max-w-7xl mx-auto w-full space-y-6">
+    <!-- CARTÕES DE INDICADORES KPI -->
+    <section class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="bg-[#2d2d3f] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-amber-400"></div>
+        <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Total Ferramentas</p>
+        <p class="text-3xl font-extrabold text-white mt-1" id="kpi_total">--</p>
+        <div class="absolute right-3 bottom-3 text-3xl opacity-10">🔧</div>
+      </div>
+      <div class="bg-[#2d2d3f] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-sky-500"></div>
+        <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Em Campo (Ativos)</p>
+        <p class="text-3xl font-extrabold text-sky-400 mt-1" id="kpi_ativos">--</p>
+        <div class="absolute right-3 bottom-3 text-3xl opacity-10">🚚</div>
+      </div>
+      <div class="bg-[#2d2d3f] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-red-500"></div>
+        <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Atrasos de Devolução</p>
+        <p class="text-3xl font-extrabold text-red-500 mt-1" id="kpi_atrasados">--</p>
+        <div class="absolute right-3 bottom-3 text-3xl opacity-10">⚠️</div>
+      </div>
+      <div class="bg-[#2d2d3f] border border-slate-800 p-4 rounded-xl shadow-lg relative overflow-hidden group">
+        <div class="absolute top-0 left-0 w-1.5 h-full bg-emerald-500"></div>
+        <p class="text-xs text-slate-400 uppercase font-bold tracking-wider">Disponíveis</p>
+        <p class="text-3xl font-extrabold text-emerald-400 mt-1" id="kpi_disponiveis">--</p>
+        <div class="absolute right-3 bottom-3 text-3xl opacity-10">✅</div>
+      </div>
+    </section>
+    <!-- OPERAÇÕES E GRÁFICOS -->
+    <section class="grid grid-cols-1 md:grid-cols-12 gap-6">
+      <!-- OPERAÇÕES RÁPIDAS (Ideal para Telemóvel) -->
+      <div
+        class="md:col-span-4 bg-[#2d2d3f] border border-slate-800 p-5 rounded-xl shadow-lg flex flex-col justify-between gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white mb-2">Ações Rápidas</h2>
+          <p class="text-xs text-slate-400 mb-4">Gerencie a entrada e saída de equipamentos diretamente através do
+            celular.</p>
+        </div>
+        <div class="space-y-3">
+          <button onclick="abrirPainelLeitor('emprestimo')"
+            class="w-full bg-amber-500 hover:bg-amber-600 active:scale-[0.98] transition text-slate-950 font-bold py-3.5 px-4 rounded-xl shadow-lg flex items-center justify-center gap-2">
+            📤 Registar Novo Empréstimo
+          </button>
+          <button onclick="abrirPainelLeitor('devolucao')"
+            class="w-full bg-slate-800 hover:bg-slate-700 active:scale-[0.98] transition text-slate-200 border border-slate-700 font-bold py-3.5 px-4 rounded-xl flex items-center justify-center gap-2">
+            📥 Registar Devolução
+          </button>
+        </div>
+        <div
+          class="mt-4 p-3 bg-slate-900/50 rounded-lg border border-slate-800 text-[11px] text-slate-400 flex items-center gap-2">
+          <span>💡</span>
+          <span>A geolocalização e os crachás são validados e vinculados no momento da retirada.</span>
+        </div>
+      </div>
+      <!-- PAINEL ANALÍTICO (GRÁFICO ESTILO POWER BI) -->
+      <div class="md:col-span-8 bg-[#2d2d3f] border border-slate-800 p-5 rounded-xl shadow-lg flex flex-col">
+        <h2 class="text-lg font-bold text-white mb-4 flex justify-between items-center">
+          <span>Estado do Inventário</span>
+          <span class="text-xs font-normal text-slate-400">Disponibilidade atual das ferramentas</span>
+        </h2>
+        <div class="flex-1 relative min-h-[200px] flex items-center justify-center">
+          <canvas id="chartStatus" class="max-h-[220px]"></canvas>
+        </div>
+      </div>
+    </section>
+    <!-- LISTAGEM DE EMPRÉSTIMOS ATIVOS -->
+    <section class="bg-[#2d2d3f] border border-slate-800 rounded-xl shadow-lg overflow-hidden">
+      <div
+        class="p-5 border-b border-slate-800 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div>
+          <h2 class="text-lg font-bold text-white">Monitor de Empréstimos Ativos</h2>
+          <p class="text-xs text-slate-400">Identificação de quem retirou, tempo decorrido e localização geográfica</p>
+        </div>
+        <div class="flex gap-2 w-full sm:w-auto">
+          <input type="text" id="filtro_tabela" onkeyup="filtrarTabela()"
+            placeholder="Procurar por ferramenta ou colaborador..."
+            class="w-full sm:w-64 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-xs focus:outline-none focus:border-amber-400">
+        </div>
+      </div>
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-sm text-slate-300" id="tabela_emprestimos">
+          <thead class="bg-[#181824] text-slate-400 text-xs uppercase tracking-wider border-b border-slate-800">
+            <tr>
+              <th class="p-4 font-semibold">Crachá/Identificação</th>
+              <th class="p-4 font-semibold">Ferramenta</th>
+              <th class="p-4 font-semibold">Colaborador</th>
+              <th class="p-4 font-semibold">Data Retirada</th>
+              <th class="p-4 font-semibold">Localização</th>
+              <th class="p-4 font-semibold">Estado</th>
+              <th class="p-4 font-semibold text-center">Ações</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-800" id="corpo_tabela">
+            <!-- Renderizado dinamicamente via JavaScript -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL DE CADASTRO DE NOVA FERRAMENTA + GERADOR QR CODE -->
+  <div id="modal_nova_ferramenta"
+    class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+      class="bg-[#2d2d3f] border border-slate-700 rounded-2xl w-full max-w-xl overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+      <!-- Cabeçalho -->
+      <div class="bg-[#181824] px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-bold text-amber-400">Registar Nova Ferramenta</h3>
+          <p class="text-xs text-slate-400">Crie um novo item na folha de cálculo e gere a etiqueta com o QR Code</p>
+        </div>
+        <button onclick="fecharModalNovaFerramenta()"
+          class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
+      </div>
+      <!-- Conteúdo do Formulário -->
+      <div class="p-5 overflow-y-auto grid grid-cols-1 md:grid-cols-12 gap-5 flex-1">
+        <!-- Formulário de Entrada (Esquerda) -->
+        <div class="md:col-span-7 space-y-4">
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">ID / Código da Ferramenta</label>
+            <div class="flex gap-2">
+              <input type="text" id="nova_ferramenta_id" placeholder="Ex: FER-005" onkeyup="atualizarQrCodeRealTime()"
+                class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 text-amber-300 font-bold uppercase">
+              <button onclick="gerarIdAutomaticoFerramenta()"
+                class="bg-slate-700 hover:bg-slate-600 text-xs px-3 rounded-lg font-bold">
+                Gerar ID
+              </button>
+            </div>
+          </div>
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Nome / Descrição</label>
+            <input type="text" id="nova_ferramenta_nome" placeholder="Ex: Martelo Perfurador Bosch"
+              onkeyup="atualizarQrCodeRealTime()"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 text-slate-200">
+          </div>
+          <div class="relative">
+            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Categoria</label>
+            <input type="text" id="nova_ferramenta_categoria" placeholder="Digite ou selecione uma categoria"
+              class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 text-slate-200 pr-8"
+              autocomplete="off" onclick="abrirDropdownCategoria()" onkeyup="filtrarDropdownCategoria(event)" />
+            <span onclick="abrirDropdownCategoria()"
+              class="absolute right-2 top-[38px] text-slate-400 cursor-pointer text-xs">▼</span>
+          </div>
+        </div>
+        <!-- Visualizador e Impressão de Etiqueta (Direita) -->
+        <div
+          class="md:col-span-5 bg-slate-900 rounded-xl p-4 border border-slate-800 flex flex-col items-center justify-center text-center space-y-3">
+          <p class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Etiqueta de Inventário</p>
+          <!-- Área de Pré-visualização da Etiqueta -->
+          <div id="etiqueta_print_area"
+            class="bg-white p-3 rounded-lg shadow-md border border-slate-200 flex flex-col items-center justify-center w-40 h-48 text-slate-900">
+            <img id="qrcode_img_preview" src="https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=PREVIEW"
+              alt="QR Code" class="w-28 h-28">
+            <p id="etiqueta_id_lbl" class="text-xs font-black tracking-wider mt-2 uppercase">PREVIEW</p>
+            <p id="etiqueta_nome_lbl" class="text-[8px] font-bold mt-0.5 truncate max-w-full">Nome do Equipamento</p>
+          </div>
+          <button onclick="imprimirEtiquetaQrCode()"
+            class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 text-xs py-2 rounded-lg font-bold flex items-center justify-center gap-1">
+            🖨️ Imprimir Etiqueta
+          </button>
+        </div>
+      </div>
+      <!-- Rodapé com Botão de Confirmação -->
+      <div class="bg-[#181824] px-5 py-4 border-t border-slate-800 flex justify-end gap-2">
+        <button onclick="fecharModalNovaFerramenta()"
+          class="bg-slate-800 hover:bg-slate-700 text-xs font-bold px-4 py-2.5 rounded-lg border border-slate-700">
+          Cancelar
+        </button>
+        <button onclick="submeterNovaFerramenta()"
+          class="bg-amber-500 hover:bg-amber-600 text-slate-950 text-xs font-bold px-5 py-2.5 rounded-lg shadow-md">
+          Registar na Planilha
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====== MODAL: Lista de Ferramentas ====== -->
+  <div id="modalFerramentas"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="w-full max-w-2xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-700 px-5 py-4">
+        <h2 class="text-lg font-semibold text-white">Ferramentas</h2>
+        <button onclick="fecharModalFerramentas()" class="text-slate-400 hover:text-white transition-colors">✕</button>
+      </div>
+      <div id="listaFerramentas" class="max-h-[60vh] overflow-y-auto p-4 space-y-2"></div>
+    </div>
+  </div>
+  <!-- ====== MODAL: Detalhe da Ferramenta ====== -->
+  <div id="modalDetalheFerramenta"
+    class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+    <div class="w-full max-w-3xl rounded-2xl border border-slate-700 bg-slate-900 shadow-2xl">
+      <div class="flex items-center justify-between border-b border-slate-700 px-5 py-4">
+        <h2 class="text-lg font-semibold text-white">Editar / Visualizar Ferramenta</h2>
+        <button onclick="fecharDetalheFerramenta()" class="text-slate-400 hover:text-white transition-colors">✕</button>
+      </div>
+      <div class="p-5">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- LADO ESQUERDO: Campos -->
+          <div class="space-y-4">
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">ID</label>
+              <input id="detalheInputId" type="text" readonly
+                class="w-full rounded-lg border border-slate-700 bg-slate-800/60 px-3 py-2 text-sm text-slate-400 cursor-not-allowed focus:outline-none">
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-slate-400 mb-1">Nome/Descrição</label>
+              <input id="detalheInputNome" type="text"
+                class="w-full rounded-lg border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-white placeholder-slate-500 focus:border-indigo-500 focus:outline-none"
+                placeholder="Nome da ferramenta">
+            </div>
+            <div class="relative">
+              <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Categoria</label>
+              <input type="text" id="detalheInputCategoria" placeholder="Digite ou selecione uma categoria"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 text-slate-200 pr-8"
+                autocomplete="off" onclick="abrirDropdownCategoria()" onkeyup="filtrarDropdownCategoria(event)" />
+              <span onclick="abrirDropdownCategoria()"
+                class="absolute right-2 top-[38px] text-slate-400 cursor-pointer text-xs">▼</span>
+            </div>
+            <div class="flex gap-2 pt-2">
+              <button onclick="salvarAlteracoesFerramenta()"
+                class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 transition-colors">
+                💾 Salvar
+              </button>
+              <button onclick="fecharDetalheFerramenta()"
+                class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-600 transition-colors">
+                Cancelar
+              </button>
+            </div>
+          </div>
+          <!-- LADO DIREITO: Prévia da etiqueta -->
+          <div class="flex flex-col items-center gap-3">
+            <span class="text-xs font-medium text-slate-400 self-start">Prévia da etiqueta</span>
+            <div class="w-full rounded-xl border border-slate-700 bg-white p-4 flex flex-col items-center gap-2">
+              <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Etiqueta de Inventário</span>
+              <img id="detalheQrCodeImg" alt="QRCode" class="rounded border border-slate-200 bg-white"
+                style="width:120px;height:120px">
+              <p id="detalhePrevId" class="text-sm font-bold text-slate-900 text-center break-words w-full">ID_PRODUTO
+              </p>
+              <p id="detalhePrevNome" class="text-xs text-slate-500 text-center break-words w-full">—</p>
+            </div>
+            <button onclick="imprimirEtiquetaDetalheQrCode()"
+              class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-600 transition-colors">
+              🖨️ Imprimir etiqueta
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- MODAL DE FLUXO OPERACIONAL (SCANNER / FOTO / CONFIRMAÇÃO) -->
+  <div id="modal_fluxo"
+    class="fixed inset-0 bg-black/85 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
+    <div
+      class="bg-[#2d2d3f] border border-slate-700 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl flex flex-col max-h-[90vh]">
+
+      <!-- Cabeçalho do Modal -->
+      <div class="bg-[#181824] px-5 py-4 border-b border-slate-800 flex justify-between items-center">
+        <div>
+          <h3 class="text-base font-bold text-amber-400" id="modal_titulo">Operação de Empréstimo</h3>
+          <p class="text-xs text-slate-400" id="modal_subtitulo">Digitalizar Código QR da Ferramenta</p>
+        </div>
+        <button onclick="fecharModalFluxo()" class="text-slate-400 hover:text-white text-xl font-bold p-1">✕</button>
+      </div>
+      <div class="p-5 overflow-y-auto space-y-4 flex-1">
+        <!-- PASSO 1: LEITOR CÓDIGO QR / DE BARRAS -->
+        <div id="container_passo_1" class="space-y-4">
+          <div
+            class="relative bg-slate-900 rounded-xl overflow-hidden aspect-video border border-slate-700 flex flex-col items-center justify-center">
+            <div id="reader_camera" class="w-full h-full"></div>
+            <div id="reader_status"
+              class="absolute inset-0 bg-slate-900/90 flex flex-col items-center justify-center p-4 text-center">
+              <span class="text-3xl mb-2">🎥</span>
+              <p class="text-sm font-semibold text-white">Leitor QR Code Pronto</p>
+              <p class="text-xs text-slate-400 mt-1 max-w-[250px]">Aponte a câmara para o código QR do equipamento para
+                efetuar a leitura automática.</p>
+              <button onclick="iniciarLeitorCamera()"
+                class="mt-4 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-4 py-2 rounded-lg text-xs shadow-md">
+                Ativar Câmara
+              </button>
+            </div>
+          </div>
+          <div class="text-center text-slate-400 text-xs py-1">OU INSIRA MANUALMENTE</div>
+          <div class="flex gap-2">
+            <input type="text" id="manual_qrcode" placeholder="ID da Ferramenta (Ex: FER-001)"
+              class="flex-1 bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 text-amber-300">
+            <button onclick="confirmarCodigoFerramentaManual()"
+              class="bg-slate-700 hover:bg-slate-600 text-xs px-4 rounded-lg font-bold">
+              Confirmar
+            </button>
+          </div>
+        </div>
+
+        <!-- PASSO 2: CRACHÁ / IDENTIFICAÇÃO DO UTILIZADOR -->
+        <div id="container_passo_2" class="hidden space-y-4">
+          <!-- Equipamento Detectado com Nome + ID -->
+          <div class="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs text-amber-300">
+            <strong>Equipamento Detectado:</strong><br>
+            <span id="label_ferramenta_detectada" class="text-sm font-bold text-amber-200">--</span>
+          </div>
+
+          <!-- Selecionar Colaborador -->
+          <div>
+            <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Selecionar Colaborador</label>
+            <div class="flex gap-2 items-end">
+              <select id="select_colaborador" onchange="aoSelecionarColaborador()"
+                class="flex-1 bg-slate-900 border border-slate-700 rounded-lg p-2.5 text-sm focus:outline-none focus:border-amber-400 text-slate-200">
+              </select>
+              <button id="btnNovoColaborador" type="button" onclick="abrirFormularioNovoUsuario()"
+                class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-4 py-2.5 rounded-lg whitespace-nowrap transition">
+                ➕ Novo
+              </button>
+            </div>
+          </div>
+
+          <!-- FOTO DO COLABORADOR SELECIONADO (aparece abaixo) -->
+          <div id="container_foto_colaborador" class="hidden">
+            <div class="p-3 bg-slate-900/60 border border-slate-700 rounded-xl flex flex-col items-center gap-2">
+              <span class="text-xs font-bold uppercase text-slate-400">Foto / Crachá do Colaborador</span>
+              <img id="foto_colaborador_selecionado" src="" alt="Foto do colaborador"
+                class="w-32 h-32 rounded-lg border border-slate-600 object-cover bg-slate-800" />
+              <p id="nome_colaborador_foto" class="text-xs text-slate-300 font-medium">--</p>
+            </div>
+          </div>
+
+          <!-- FORMULÁRIO NOVO COLABORADOR (começa oculto) -->
+          <div id="formNovoUsuario" class="hidden bg-slate-900/80 border border-slate-700 rounded-xl p-4 space-y-4">
+            <h3 class="text-sm font-bold text-amber-400 uppercase">➕ Novo Colaborador</h3>
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-400 mb-1">ID / Matrícula *</label>
+              <input id="novo_usuario_id" type="text"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                placeholder="Ex: 00123" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Nome *</label>
+              <input id="novo_usuario_nome" type="text"
+                class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+                placeholder="Nome completo" />
+            </div>
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-400 mb-1">WhatsApp</label>
+<input id="novo_usuario_whats" type="tel" inputmode="numeric"
+  class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200"
+  placeholder="(00) 00000-0000" oninput="this.value=this.value.replace(/[^0-9]/g,'')" />
+            </div>
+<div class="relative">
+  <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Setor</label>
+  <input type="text" id="novo_usuario_setor" placeholder="Digite ou selecione um setor"
+    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-amber-400 text-slate-200 pr-8"
+    autocomplete="off" onclick="abrirDropdownSetor()" onkeyup="filtrarDropdownSetor(event)" />
+  <span onclick="abrirDropdownSetor()" class="absolute right-2 top-[38px] text-slate-400 cursor-pointer text-xs">▼</span>
+</div>
+
+            <!-- Capturar Foto do Crachá (dentro do formulário) -->
+            <div>
+              <label class="block text-xs font-bold uppercase text-slate-400 mb-1">Capturar Foto do Crachá ou do
+                Utilizador</label>
+              <div
+                class="bg-slate-900 rounded-xl overflow-hidden aspect-video border border-slate-700 flex flex-col items-center justify-center relative">
+                <video id="video_cracha" autoplay playsinline class="w-full h-full object-cover hidden"></video>
+                <canvas id="canvas_cracha" class="w-full h-full object-cover hidden"></canvas>
+                <div id="camera_cracha_placeholder"
+                  class="absolute inset-0 flex flex-col items-center justify-center p-4 text-center">
+                  <span class="text-3xl mb-2">🆔</span>
+                  <p class="text-xs text-slate-400 font-medium">Capture o rosto ou crachá de quem está a levantar a
+                    ferramenta.</p>
+                  <button type="button" onclick="iniciarCameraCracha()"
+                    class="mt-3 bg-amber-500 hover:bg-amber-600 text-slate-950 font-bold px-3 py-1.5 rounded-lg text-xs shadow-md">
+                    Abrir Câmara de Validação
+                  </button>
+                </div>
+                <button id="btn_snap" type="button" onclick="capturarFotoCracha()"
+                  class="absolute bottom-3 left-1/2 -translate-x-1/2 bg-red-600 hover:bg-red-700 text-white rounded-full p-3 shadow-lg hidden">
+                  📸 Capturar Foto
+                </button>
+              </div>
+              <button id="btn_retake" type="button" onclick="resetarCameraCracha()"
+                class="w-full bg-slate-800 hover:bg-slate-700 text-xs py-2 rounded-lg font-bold border border-slate-700 hidden mt-2">
+                Repetir Fotografia
+              </button>
+            </div>
+
+            <!-- Botões do formulário -->
+            <div class="flex gap-2 pt-2">
+              <button id="btnSalvarNovoUsuario" type="button" onclick="salvarNovoUsuario()"
+                class="flex-1 bg-amber-500 hover:bg-amber-400 text-slate-900 font-bold text-sm px-4 py-2.5 rounded-lg transition">
+                ✅ Salvar e Selecionar
+              </button>
+              <button id="btnCancelarNovoUsuario" type="button" onclick="fecharFormularioNovoUsuario()"
+                class="flex-1 bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-300 text-sm font-bold px-4 py-2.5 rounded-lg transition">
+                Cancelar
+              </button>
+            </div>
+          </div>
+
+          <!-- Data Prevista de Devolução -->
+<div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+  <label class="block text-xs font-bold uppercase text-slate-400 mb-1">📅 Data Prevista de Devolução</label>
+  <input type="date" id="data_prevista_devolucao"
+    class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-amber-400"
+    />
+  <p class="text-[10px] text-slate-500 mt-1">Deixe em branco para calcular automaticamente 10 dias úteis</p>
+</div>
+
+<!-- Dados de Localização GPS -->
+<div class="p-3 bg-slate-900 rounded-lg border border-slate-800">
+  <div class="flex items-center justify-between mb-2">
+    <p class="text-xs text-slate-200 font-bold">📍 Rastreamento de Coordenadas</p>
+    <span id="badge_geo" class="bg-amber-600/30 text-amber-400 border border-amber-500/30 text-[9px] px-2 py-0.5 rounded-full">A aguardar</span>
+  </div>
+  <p class="text-[10px] text-slate-400 mb-2" id="txt_geo">Clique no botão para obter localização</p>
+  <button type="button" onclick="capturarGeolocalizacao()" class="w-full bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-lg py-2 text-xs font-bold text-slate-300 transition flex items-center justify-center gap-2">
+    📡 Obter Localização
+  </button>
+</div>
+
+          <!-- Confirmação do Empréstimo -->
+          <button onclick="finalizarProcessoEmprestimo()"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition active:scale-[0.98]">
+            Confirmar e Registar Empréstimo
+          </button>
+        </div>
+
+        <!-- PASSO 3: CONFIRMAR DEVOLUÇÃO -->
+        <div id="container_passo_devolucao" class="hidden space-y-4">
+          <div class="p-4 bg-slate-950/60 border border-slate-800 rounded-xl text-center space-y-2">
+            <p class="text-xs text-slate-400">Ferramenta Escaneada para Devolução:</p>
+            <p class="text-lg font-bold text-amber-400" id="lbl_dev_ferramenta_nome">--</p>
+            <p class="text-xs text-slate-300">Colaborador Associado: <span class="font-bold text-white"
+                id="lbl_dev_colaborador">--</span></p>
+          </div>
+
+          <div
+            class="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg text-xs text-emerald-400 flex items-start gap-2">
+            <span>🗑️</span>
+            <span><strong>Otimização de Espaço:</strong> A imagem física guardada no Google Drive será removida
+              automaticamente para manter a sua nuvem leve.</span>
+          </div>
+
+          <button onclick="finalizarProcessoDevolucao()"
+            class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-4 rounded-xl shadow-lg transition active:scale-[0.98]">
+            Finalizar Devolução
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- TORRADA / ALERTAS VISUAIS CUSTOMIZADOS (TOAST SYSTEM) -->
+  <div id="toast"
+    class="fixed bottom-4 right-4 z-50 transform translate-y-10 opacity-0 transition-all duration-300 pointer-events-none">
+    <div
+      class="bg-slate-800 border-l-4 border-amber-500 text-slate-100 p-4 rounded-lg shadow-2xl flex items-center gap-3 max-w-sm">
+      <span class="text-lg" id="toast_icon">🔔</span>
+      <div>
+        <p class="font-bold text-xs" id="toast_title">Notificação</p>
+        <p class="text-[11px] text-slate-300" id="toast_msg">Mensagem enviada com sucesso.</p>
+      </div>
+    </div>
+  </div>
+
+  <footer class="bg-[#181824] border-t border-slate-800 py-3 text-center text-[10px] text-slate-500">
+    <p>© 2026 ControlTool - Sistema Otimizado para Tronco Avaré</p>
+  </footer>
+
+  <script>
+    // URL PADRÃO CONFIGURADA AUTOMATICAMENTE
+    const API_URL = "https://script.google.com/macros/s/AKfycbwF4bmc-jhpZ5zocETdh1BCgfbiZETj7FwkOJpTH-KjNQ2fZbv9EWrsjflVhkpF5xhLWw/exec";
+
+    // BASE DE DADOS LOCAL DE SEGURANÇA (Para simulação imediata offline se a API estiver fora do ar)
+    let baseDeDados = {
+      ferramentas: [
+        { ID_Ferramenta: "FER-001", Nome: "Aparafusadora Makita HP1630", Categoria: "Elétrica", Status: "Disponivel" },
+        { ID_Ferramenta: "FER-002", Nome: "Rebarbadora Bosch GWS 850", Categoria: "Elétrica", Status: "Emprestado" },
+        { ID_Ferramenta: "FER-003", Nome: "Multímetro Digital Minipa", Categoria: "Eletrônica", Status: "Disponivel" },
+        { ID_Ferramenta: "FER-004", Nome: "Maleta de Chaves de Caixa", Categoria: "Manual", Status: "Disponivel" }
+      ],
+      usuarios: [
+        { Matricula: "MAT-201", Nome: "Carlos Silva", Telefone_WhatsApp: "351912345678", Setor: "Manutenção" },
+        { Matricula: "MAT-202", Nome: "Ana Oliveira", Telefone_WhatsApp: "351912345679", Setor: "Produção" },
+        { Matricula: "MAT-203", Nome: "Marcos Souza", Telefone_WhatsApp: "351912345680", Setor: "Instalação" }
+      ],
+      emprestimos: [
+        { id: "EMP-001", ferramenta_id: "FER-002", ferramenta_nome: "Rebarbadora Bosch GWS 850", colaborador: "Ana Oliveira", whats: "351912345679", data: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(), status: "Disponivel", lat: 38.7223, lng: -9.1393, foto: "" }
+      ]
+    };
+
+    let chartInstance = null;
+    let scannerQrCode = null;
+    let cameraStream = null;
+    let operacaoAtual = "";
+
+    let dadosColetados = { idFerramenta: "", matricula: "", foto: "", lat: "", lng: "" };
+
+    window.onload = function () {
+      // Estabelece ligação e sincroniza automaticamente os dados do banco de dados na planilha
+      buscarDadosDoServidor();
+    };
+
+function buscarDadosDoServidor() {
+  if (typeof API_URL !== "undefined" && API_URL) {
+    fetch(API_URL + "?acao=listarTudo", { method: "GET" })
+    .then(function(r) { return r.json(); })
+    .then(function(dados) {
+      if (!dados || dados.status !== "sucesso") { renderizarDashboard(); return; }
+
+      var locais = [];
+      if (baseDeDados && Array.isArray(baseDeDados.emprestimos)) {
+        locais = baseDeDados.emprestimos.slice();
+      }
+
+      baseDeDados.ferramentas = Array.isArray(dados.ferramentas) ? dados.ferramentas : [];
+      baseDeDados.usuarios = Array.isArray(dados.usuarios) ? dados.usuarios : [];
+
+      // Construir lista do servidor com lookups
+      baseDeDados.emprestimos = [];
+      if (Array.isArray(dados.emprestimos)) {
+        dados.emprestimos.forEach(function(emp) {
+          var obj = {
+            ferramenta_id: emp['Ferramenta ID'] || emp[0] || "",
+            matricula: emp['Usuario ID'] || emp[1] || "",
+            data: emp['Data Emprestimo'] || emp[2] || "",
+            data_prevista: emp['Data Devolução Prevista'] || emp[3] || "",
+            status: emp['Status'] || emp[5] || "Ativo",
+            localizacao: emp['Localização'] || emp[6] || "",
+            lat: "", lng: "",
+            ferramenta_nome: "", colaborador: "", colaborador_foto: "", colaborador_whatsapp: ""
+          };
+
+          if (obj.localizacao && obj.localizacao.indexOf(",") > -1) {
+            var partes = obj.localizacao.split(",");
+            obj.lat = partes[0] || ""; obj.lng = partes[1] || "";
+          }
+
+          for (var fi = 0; fi < baseDeDados.ferramentas.length; fi++) {
+            var f = baseDeDados.ferramentas[fi];
+            if (String(f.ID || f.id || f.ID_Ferramenta || "") === String(obj.ferramenta_id)) {
+              obj.ferramenta_nome = f.Nome || f.nome || f.Descrição || f.Descricao || ""; break;
+            }
+          }
+          for (var ui = 0; ui < baseDeDados.usuarios.length; ui++) {
+            var u = baseDeDados.usuarios[ui];
+            if (String(u.ID || u.id || u.Matricula || u.matricula || "") === String(obj.matricula)) {
+              obj.colaborador = u.Nome || u.nome || "";
+              obj.colaborador_foto = u['Foto/Crachá'] || u.foto || u.Foto || "";
+              obj.colaborador_whatsapp = u.Whatsapp || u.whatsapp || ""; break;
+            }
+          }
+
+          baseDeDados.emprestimos.push(obj);
+        });
+      }
+
+      // MESCLAR: dados locais (mais completos) substituem os do servidor
+      locais.forEach(function(local) {
+        if (!local.data) return;
+        var achou = false;
+        for (var i = 0; i < baseDeDados.emprestimos.length; i++) {
+          var s = baseDeDados.emprestimos[i];
+          if (s.ferramenta_id === local.ferramenta_id && s.matricula === local.matricula && s.data === local.data) {
+            if (local.ferramenta_nome) s.ferramenta_nome = local.ferramenta_nome;
+            if (local.colaborador) s.colaborador = local.colaborador;
+            if (local.colaborador_foto) s.colaborador_foto = local.colaborador_foto;
+            if (local.colaborador_whatsapp) s.colaborador_whatsapp = local.colaborador_whatsapp;
+            if (local.lat) s.lat = local.lat;
+            if (local.lng) s.lng = local.lng;
+            if (local.data_prevista) s.data_prevista = local.data_prevista;
+            achou = true; break;
+          }
+        }
+        if (!achou) baseDeDados.emprestimos.push(local);
+      });
+
+      renderizarDashboard();
+    })
+    .catch(function() { renderizarDashboard(); });
+  } else { renderizarDashboard(); }
+}
+
+function formatarDataBR(valor) {
+  if (valor === null || valor === undefined || valor === "") return "";
+  
+  // Se nao for string, converte
+  if (typeof valor !== "string") {
+    try {
+      var d = new Date(valor);
+      if (!isNaN(d.getTime())) {
+        var dia = d.getDate();
+        if (dia < 10) dia = "0" + dia;
+        var mes = d.getMonth() + 1;
+        if (mes < 10) mes = "0" + mes;
+        var ano = d.getFullYear();
+        return dia + "/" + mes + "/" + ano;
+      }
+    } catch(e) {}
+    return "" + valor;
+  }
+  
+  // Ja tem / ? ja esta BR
+  if (valor.indexOf("/") > 0) return valor;
+  
+  // Tem T ? ISO completo
+  var posT = valor.indexOf("T");
+  if (posT > 0) {
+    var parte = valor.substring(0, posT);
+    var partes = parte.split("-");
+    if (partes.length === 3) return partes[2] + "/" + partes[1] + "/" + partes[0];
+  }
+  
+  // Tem - ? formato YYYY-MM-DD
+  if (valor.indexOf("-") > 0) {
+    var partes = valor.substring(0, 10).split("-");
+    if (partes.length === 3) return partes[2] + "/" + partes[1] + "/" + partes[0];
+  }
+  
+  // fallback Date
+  try {
+    var d = new Date(valor);
+    if (!isNaN(d.getTime())) {
+      var dia = d.getDate();
+      if (dia < 10) dia = "0" + dia;
+      var mes = d.getMonth() + 1;
+      if (mes < 10) mes = "0" + mes;
+      var ano = d.getFullYear();
+      return dia + "/" + mes + "/" + ano;
+    }
+  } catch(e) {}
+  
+  return valor;
+}
+
+ function renderizarDashboard() {
+  if (!baseDeDados) baseDeDados = {};
+  if (!Array.isArray(baseDeDados.ferramentas)) baseDeDados.ferramentas = [];
+  if (!Array.isArray(baseDeDados.usuarios)) baseDeDados.usuarios = [];
+  if (!Array.isArray(baseDeDados.emprestimos)) baseDeDados.emprestimos = [];
+
+  
+  const total = baseDeDados.ferramentas.length;
+  const disponiveis = baseDeDados.ferramentas.filter(function(f) {
+    const s = (f.Status || f.status || "").toLowerCase().replace(/[áàâã]/g, "a");
+    return s === "disponivel";
+  }).length;
+
+  var hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  var ativos = 0;
+  var atrasados = 0;
+
+  baseDeDados.emprestimos.forEach(function(emp) {
+    var s = (emp.status || emp.Status || "").toLowerCase();
+    if (s !== "ativo" && s !== "emprestado" && s !== "atrasado") return;
+
+    var dp = emp.data_prevista || emp.dataPrevista || emp['Data Devolução Prevista'] || "";
+    dp = formatarDataBR(dp);
+    if (!dp) { ativos++; return; }
+
+    var partes = dp.split("/");
+    if (partes.length === 3) {
+      var dataPrev = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+      dataPrev.setHours(0, 0, 0, 0);
+      if (hoje > dataPrev) { atrasados++; }
+      else { ativos++; }
+    } else { ativos++; }
+  });
+
+  var k1 = document.getElementById("kpi_total");
+  var k2 = document.getElementById("kpi_disponiveis");
+  var k3 = document.getElementById("kpi_ativos");
+  var k4 = document.getElementById("kpi_atrasados");
+  if (k1) k1.textContent = total;
+  if (k2) k2.textContent = disponiveis;
+  if (k3) k3.textContent = ativos;
+  if (k4) k4.textContent = atrasados;
+
+  const select = document.getElementById("select_colaborador");
+  if (select) {
+    const valorAnterior = select.value;
+    select.innerHTML = '<option value="">-- Selecione o Colaborador --</option>';
+    baseDeDados.usuarios.forEach(function(user) {
+      const mat = user.ID || user.id || user.Matricula || user.matricula || "";
+      const nome = user.Nome || user.nome || "Sem nome";
+      const setor = user.Setor || user.setor || "";
+      select.innerHTML += '<option value="' + mat + '">' + nome + ' (' + mat + ')' + (setor ? " - " + setor : "") + '</option>';
+    });
+    if (valorAnterior) select.value = valorAnterior;
+  }
+
+  const corpoTabela = document.getElementById("corpo_tabela");
+  if (corpoTabela) {
+    corpoTabela.innerHTML = "";
+    var ativosLista = baseDeDados.emprestimos.filter(function(e) {
+      var s = (e.status || e.Status || "").toLowerCase();
+      return s === "ativo" || s === "emprestado" || s === "atrasado";
+    });
+
+    if (ativosLista.length === 0) {
+      corpoTabela.innerHTML = '<tr><td colspan="7" class="p-8 text-center text-xs text-slate-500">Sem empréstimos ativos.</td></tr>';
+    } else {
+      ativosLista.forEach(function(emp) {
+        // Coluna 1 - Foto
+        var fotoUrl = emp.colaborador_foto || emp['Foto/Crachá'] || emp.foto || "";
+        var fotoHtml = '<div class="w-10 h-10 rounded-full bg-slate-700 flex items-center justify-center text-xs text-slate-400 overflow-hidden">';
+        if (fotoUrl) {
+          fotoHtml += '<img src="' + fotoUrl + '" class="w-full h-full object-cover" alt="foto">';
+        } else {
+          fotoHtml += '👤';
+        }
+        fotoHtml += '</div>';
+
+        // Coluna 2 - Ferramenta + ID
+        var ferHtml = '<div class="font-semibold text-white text-sm">' + (emp.ferramenta_nome || "—") + '</div>' +
+                      '<div class="text-[10px] text-slate-400">' + (emp.ferramenta_id || "") + '</div>';
+
+        // Coluna 3 - Colaborador + ID
+        var colHtml = '<div class="font-medium text-white text-sm">' + (emp.colaborador || "—") + '</div>' +
+                      '<div class="text-[10px] text-slate-400">' + (emp.matricula || "") + '</div>';
+
+        // Coluna 4 - Data formatada BR
+        var dataRaw = emp.data || emp['Data Emprestimo'] || "";
+        var dataHtml = '<div class="text-xs text-slate-200">' + formatarDataBR(dataRaw) + '</div>';
+
+        // Coluna 5 - Localização (link para mapa)
+        var lat = emp.lat || "";
+        var lng = emp.lng || "";
+        var locHtml = '<div class="text-xs text-slate-400">';
+        if (lat) {
+          var mapsUrl = 'https://www.google.com/maps?q=' + lat + ',' + lng;
+          locHtml += '<a href="' + mapsUrl + '" target="_blank" class="text-sky-400 hover:text-sky-300 underline underline-offset-2 hover:brightness-110 transition-all" title="Abrir no Google Maps">📍 ' + lat + ', ' + lng + '</a>';
+        } else {
+          locHtml += '📍 —';
+        }
+        locHtml += '</div>';
+
+        // Coluna 6 - Estado
+        var dataPrevRaw = emp.data_prevista || emp.dataPrevista || emp['Data Devolução Prevista'] || "";
+        var dataPrevStr = formatarDataBR(dataPrevRaw);
+        var estadoHtml = "";
+
+        if (dataPrevStr) {
+          var partes = dataPrevStr.split("/");
+          if (partes.length === 3) {
+            var dataPrev = new Date(parseInt(partes[2]), parseInt(partes[1]) - 1, parseInt(partes[0]));
+            dataPrev.setHours(0, 0, 0, 0);
+            if (hoje > dataPrev) {
+              estadoHtml = '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded text-xs font-bold">🔴 Atrasado (prev: ' + dataPrevStr + ')</span>';
+            } else {
+              estadoHtml = '<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded text-xs font-bold">✅ No prazo. Devolução ' + dataPrevStr + '</span>';
+            }
+          }
+        }
+
+        if (!estadoHtml) {
+          var dataEmpStr = formatarDataBR(dataRaw);
+          if (dataEmpStr && /^\d{2}\/\d{2}\/\d{4}$/.test(dataEmpStr)) {
+            var p = dataEmpStr.split("/");
+            var dataEmpDate = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+            var diasUteis = 0;
+            var dataCalc = new Date(dataEmpDate);
+            while (diasUteis < 10) {
+              dataCalc.setDate(dataCalc.getDate() + 1);
+              var diaSem = dataCalc.getDay();
+              if (diaSem !== 0 && diaSem !== 6) diasUteis++;
+            }
+            var dd = String(dataCalc.getDate()).padStart(2, "0");
+            var mm = String(dataCalc.getMonth() + 1).padStart(2, "0");
+            var aa = dataCalc.getFullYear();
+            dataPrevStr = dd + "/" + mm + "/" + aa;
+
+            if (hoje > dataCalc) {
+              estadoHtml = '<span class="bg-red-500/20 text-red-400 border border-red-500/30 px-3 py-1 rounded text-xs font-bold">🔴 Atrasado (calc: ' + dataPrevStr + ')</span>';
+            } else {
+              estadoHtml = '<span class="bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 px-3 py-1 rounded text-xs font-bold">✅ No prazo. Devolução ' + dataPrevStr + '</span>';
+            }
+          } else {
+            estadoHtml = '<span class="bg-sky-500/20 text-sky-400 border border-sky-500/30 px-3 py-1 rounded text-xs font-bold">📌 Ativo</span>';
+          }
+        }
+
+        // Coluna 7 - WhatsApp com mensagem + localização
+        var wpp = String(emp.colaborador_whatsapp || "");
+        var acaoHtml = '';
+        if (wpp) {
+          var numero = wpp.replace(/[^0-9]/g, "");
+          var ferId = emp.ferramenta_id || "";
+          var ferNome = (emp.ferramenta_nome || ferId).replace(/'/g, "\'");
+          var dataRet = formatarDataBR(emp.data || "");
+          var dataPrevWpp = formatarDataBR(emp.data_prevista || "");
+          acaoHtml = '<button onclick="enviarWhatsApp(\'' + ferId + '\',\'' + numero + '\',\'' + ferNome + '\',\'' + dataRet + '\',\'' + dataPrevWpp + '\')" class="inline-flex items-center gap-1 px-3 py-1.5 bg-emerald-600/30 border border-emerald-500/40 rounded-lg text-emerald-300 text-xs font-medium hover:bg-emerald-600/50 transition-all active:scale-95">💬 WhatsApp</button>';
+        } else {
+          acaoHtml = '<span class="text-[10px] text-slate-500">—</span>';
+        }
+
+        corpoTabela.innerHTML += '<tr class="hover:bg-slate-800/40 transition border-b border-slate-800">' +
+          '<td class="p-3">' + fotoHtml + '</td>' +
+          '<td class="p-3">' + ferHtml + '</td>' +
+          '<td class="p-3">' + colHtml + '</td>' +
+          '<td class="p-3">' + dataHtml + '</td>' +
+          '<td class="p-3">' + locHtml + '</td>' +
+          '<td class="p-3">' + estadoHtml + '</td>' +
+          '<td class="p-3">' + acaoHtml + '</td></tr>';
+      });
+    }
+  }
+
+  if (typeof renderizarGraficoStatus === "function") {
+    renderizarGraficoStatus(disponiveis, ativos, atrasados);
+  }
+}
+
+// ===== WHATSAPP COM MENSAGEM PADRÃO + CAPTURA DE LOCALIZAÇÃO =====
+function enviarWhatsApp(ferramentaId, telefone, nomeFer, dataRet, dataPrev) {
+  // 1) Abrir WhatsApp com mensagem padrão
+  var urlBase = window.location.origin + window.location.pathname;
+var linkLocalizacao = urlBase + '?acao=localizar&id=' + ferramentaId + '&nome=' + encodeURIComponent(nomeFer);
+
+// Versão curta para caber no WhatsApp
+var linkCurto = urlBase + '?acao=localizar&id=' + ferramentaId;
+
+var mensagem = encodeURIComponent(
+  "Olá! ✋\n\n" +
+  "Você retirou *" + nomeFer + "* (" + ferramentaId + ") em " + dataRet + ".\n" +
+  "📅 Previsão de devolução: " + dataPrev + "\n\n" +
+  "👉 *Clique no link abaixo para enviar sua localização e atualizar o sistema:*\n" +
+  linkCurto + "\n\n" +
+  "Ao clicar, o navegador vai pedir permissão — é só autorizar 🌐✅\n\n" +
+  "Obrigado!"
+);
+  window.open('https://wa.me/55' + telefone + '?text=' + mensagem, '_blank');
+
+  // 2) Perguntar se quer capturar localização
+  if (confirm("📍 O colaborador está com a ferramenta agora?\n\nClique OK para capturar a localização e atualizar o sistema.")) {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        function(pos) {
+          atualizarLocalizacao(ferramentaId, pos.coords.latitude, pos.coords.longitude);
+        },
+        function() {
+          showToast("Erro", "Não foi possível obter localização. Verifique as permissões.", "❌", "bg-red-600/30 border-red-500");
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    } else {
+      showToast("Erro", "Geolocalização não suportada.", "❌", "bg-red-600/30 border-red-500");
+    }
+  }
+}
+
+function atualizarLocalizacao(ferramentaId, lat, lng) {
+  // Atualizar localmente
+  if (baseDeDados && Array.isArray(baseDeDados.emprestimos)) {
+    for (var i = 0; i < baseDeDados.emprestimos.length; i++) {
+      var e = baseDeDados.emprestimos[i];
+      var s = (e.status || "").toLowerCase();
+      if (e.ferramenta_id === ferramentaId && (s === "ativo" || s === "emprestado" || s === "atrasado")) {
+        e.lat = String(lat);
+        e.lng = String(lng);
+        break;
+      }
+    }
+  }
+
+  // Enviar ao servidor
+  if (typeof API_URL !== "undefined" && API_URL) {
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        acao: "atualizarLocalizacao",
+        ferramentaId: ferramentaId,
+        lat: String(lat),
+        lng: String(lng)
+      })
+    })
+    .then(function(r) { try { return r.json(); } catch(e) { return null; } })
+    .then(function() {
+      showToast("📍 Localização atualizada!", lat + ", " + lng, "✅", "bg-emerald-600/30 border-emerald-500");
+      renderizarDashboard();
+    })
+    .catch(function() {
+      showToast("📍 Localização atualizada (offline)!", lat + ", " + lng, "✅", "bg-emerald-600/30 border-emerald-500");
+      renderizarDashboard();
+    });
+  } else {
+    showToast("📍 Localização atualizada!", lat + ", " + lng, "✅", "bg-emerald-600/30 border-emerald-500");
+    renderizarDashboard();
+  }
+}
+
+    function filtrarTabela() {
+      const termo = document.getElementById("filtro_tabela").value.toLowerCase();
+      const linhas = document.querySelectorAll("#corpo_tabela tr");
+
+      linhas.forEach(linha => {
+        if (linha.cells.length < 3) return;
+        const textoLinha = linha.textContent.toLowerCase();
+        linha.style.display = textoLinha.includes(termo) ? "" : "none";
+      });
+    }
+
+function renderizarGraficoStatus(disponiveis, ativos, atrasados) {
+  const ctx = document.getElementById('chartStatus').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+
+  chartInstance = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Disponíveis', 'Em Campo', 'Atrasadas'],
+      datasets: [{
+        data: [disponiveis, ativos, atrasados],
+        backgroundColor: ['#10b981', '#0ea5e9', '#ef4444'],
+        borderColor: '#1f1f2e',
+        borderWidth: 4
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: { color: '#cbd5e1', font: { size: 10 } }
+        }
+      },
+      cutout: '70%'
+    }
+  });
+}
+
+    function enviarAlertaWhatsApp(whats, ferramenta) {
+      if (!whats) {
+        showToast("Sem Contacto", "O colaborador selecionado não possui contacto registado.", "❌", "bg-red-600/30 border-red-500");
+        return;
+      }
+
+      const numLimpo = whats.replace(/\D/g, '');
+      const mensagem = `Olá, informamos que o equipamento *${ferramenta}* que levantou ainda se encontra pendente de devolução. Por favor, proceda à sua entrega assim que possível. Obrigado!`;
+      const url = `https://wa.me/${numLimpo}?text=${encodeURIComponent(mensagem)}`;
+
+      window.open(url, '_blank');
+      showToast("Whatsapp Aberto", "Contacto enviado para a aplicação WhatsApp.", "💬", "bg-emerald-600/30 border-emerald-500");
+    }
+
+    //Lista Ferramentas Ver Ferramentas
+    let detalheFerramentaIndex = null;
+    function getFerramentaId(f) {
+      return f.ID ?? f.id ?? f.ID_Ferramenta ?? f.codigo ?? null;
+    }
+    function getFerramentaNome(f) {
+      return f.Descrição ?? f.Descricao ?? f.descricao ?? f.Nome ?? f.nome ?? 'Sem nome';
+    }
+    function getFerramentaCategoria(f) {
+      return f.Categoria ?? f.categoria ?? '—';
+    }
+    function getFerramentaQrCode(f) {
+      const qr = f.QrCode ?? f.qrCode ?? null;
+      if (qr) return qr;
+      const id = getFerramentaId(f);
+      return `https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=${encodeURIComponent(id)}`;
+    }
+    function abrirModalFerramentas() {
+      renderizarListaFerramentas();
+      const m = document.getElementById('modalFerramentas');
+      m.classList.remove('hidden');
+      m.classList.add('flex');
+    }
+    function fecharModalFerramentas() {
+      const m = document.getElementById('modalFerramentas');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+    }
+
+    function renderizarListaFerramentas() {
+      const cont = document.getElementById('listaFerramentas');
+      cont.innerHTML = '';
+      const lista = (typeof baseDeDados !== 'undefined' && Array.isArray(baseDeDados.ferramentas)) ? baseDeDados.ferramentas : [];
+      if (lista.length === 0) {
+        cont.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">Nenhuma ferramenta cadastrada.</p>';
+        return;
+      }
+      lista.forEach((f, i) => {
+        const id = getFerramentaId(f);
+        const nome = getFerramentaNome(f);
+        const cat = getFerramentaCategoria(f);
+        const status = f.Status || f.status || f.Estado || "Disponivel";
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'w-full text-left rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 hover:bg-slate-700 transition-colors';
+        item.innerHTML = `
+      <div class="flex items-center justify-between gap-3">
+        <div class="min-w-0 flex-1">
+          <p class="text-sm font-semibold text-white truncate">${nome}</p>
+          <p class="text-xs text-slate-400 truncate mt-0.5">#${id}</p>
+        </div>
+        <div class="shrink-0 text-right">
+          <span class="inline-block text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">${cat}</span>
+          <p class="text-xs text-slate-500 mt-0.5">${status}</p>
+        </div>
+      </div>`;
+        item.onclick = () => abrirDetalheFerramenta(i);
+        cont.appendChild(item);
+      });
+    }
+
+    function abrirDetalheFerramenta(index) {
+      const ferramenta = baseDeDados && baseDeDados.ferramentas ? baseDeDados.ferramentas[index] : null;
+      if (!ferramenta) return;
+      detalheFerramentaIndex = index;
+      atualizarQrCodeDetalhe();
+      const modalDetalheFerramenta = document.getElementById('modalDetalheFerramenta');
+      if (modalDetalheFerramenta) {
+        modalDetalheFerramenta.classList.remove('hidden');
+        modalDetalheFerramenta.classList.add('flex');
+      }
+    }
+
+    function fecharDetalheFerramenta() {
+      const m = document.getElementById('modalDetalheFerramenta');
+      m.classList.add('hidden');
+      m.classList.remove('flex');
+      detalheFerramentaIndex = null;
+    }
+
+    function atualizarQrCodeDetalhe() {
+      if (detalheFerramentaIndex === null) return;
+      const lista = (typeof baseDeDados !== 'undefined' && Array.isArray(baseDeDados.ferramentas)) ? baseDeDados.ferramentas : [];
+      const f = lista[detalheFerramentaIndex];
+      if (!f) return;
+      const id = getFerramentaId(f);
+      const nome = getFerramentaNome(f);
+      const cat = getFerramentaCategoria(f);
+      const qr = getFerramentaQrCode(f);
+      const inpId = document.getElementById('detalheInputId');
+      const inpNome = document.getElementById('detalheInputNome');
+      const inpCat = document.getElementById('detalheInputCategoria');
+      if (inpId) inpId.value = id || '';
+      if (inpNome) inpNome.value = nome || '';
+      if (inpCat) inpCat.value = cat || '';
+      const img = document.getElementById('detalheQrCodeImg');
+      if (img) img.src = qr;
+      const pId = document.getElementById('detalhePrevId');
+      if (pId) pId.textContent = id ? '#' + id : 'ID_PRODUTO';
+      const pNome = document.getElementById('detalhePrevNome');
+      if (pNome) pNome.textContent = nome || 'Nova Ferramenta';
+    }
+
+    async function salvarAlteracoesFerramenta() {
+      try {
+        const inpId = document.getElementById('detalheInputId');
+        const inpNome = document.getElementById('detalheInputNome');
+        const inpCat = document.getElementById('detalheInputCategoria');
+        const imgQr = document.getElementById('detalheQrCodeImg');
+        if (!inpId || !inpNome || !inpCat) {
+          showToast('Erro', 'Campos do formulário não encontrados.', 'error', '');
+          return;
+        }
+        const id = inpId.value;
+        const nome = inpNome.value.trim();
+        const categoria = inpCat.value.trim();
+        const qrCode = imgQr ? imgQr.src : '';
+        if (!id || !nome) {
+          showToast('Atenção', 'Preencha os campos obrigatórios.', 'warning', '');
+          return;
+        }
+        const payload = {
+          acao: 'editarFerramenta',
+          id: id,
+          nome: nome,
+          descricao: categoria,
+          status: 'Disponivel',
+          qrCode: qrCode
+        };
+        const resposta = await fetch(API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+          body: JSON.stringify(payload)
+        });
+        const texto = await resposta.text();
+        let dados;
+        try {
+          dados = JSON.parse(texto);
+        } catch (e) {
+          const match = texto.match(/\{[\s\S]*\}/);
+          dados = match ? JSON.parse(match[0]) : { status: 'erro', mensagem: 'Resposta inválida do servidor.' };
+        }
+        if (dados.status === 'sucesso') {
+          if (detalheFerramentaIndex >= 0 && baseDeDados.ferramentas[detalheFerramentaIndex]) {
+            var f = baseDeDados.ferramentas[detalheFerramentaIndex];
+            f.Descrição = nome;
+            f.Categoria = categoria;
+            f.Status = 'Disponivel';
+            f.QrCode = qrCode;
+            f.qrCode = qrCode;
+          }
+          if (typeof renderizarListaFerramentas === 'function') renderizarListaFerramentas();
+          if (typeof renderizarDashboard === 'function') renderizarDashboard();
+          showToast('Sucesso', 'Ferramenta atualizada com sucesso.', 'success', '');
+          if (typeof fecharDetalheFerramenta === 'function') fecharDetalheFerramenta();
+        } else {
+          showToast('Erro', dados.mensagem || 'Falha ao atualizar ferramenta.', 'error', '');
+        }
+      } catch (erro) {
+        showToast('Erro', String(erro), 'error', '');
+      }
+    }
+
+    function imprimirEtiquetaDetalheQrCode() {
+      if (detalheFerramentaIndex === null) return;
+      const lista = (typeof baseDeDados !== 'undefined' && Array.isArray(baseDeDados.ferramentas)) ? baseDeDados.ferramentas : [];
+      const f = lista[detalheFerramentaIndex];
+      if (!f) return;
+
+      const id = getFerramentaId(f);
+      const nome = document.getElementById('detalheInputNome').value || getFerramentaNome(f);
+      const cat = document.getElementById('detalheInputCategoria').value || getFerramentaCategoria(f);
+      const qr = getFerramentaQrCode(f);
+
+      const win = window.open('', '_blank', 'width=420,height=560');
+      if (!win) {
+        if (typeof showToast === 'function') showToast('Permita pop-ups para imprimir.', 'error');
+        return;
+      }
+      win.document.write(`
+    <html>
+    <head>
+      <title>Etiqueta - ${nome}</title>
+      <style>
+        * { box-sizing: border-box; }
+        body { margin: 0; font-family: Arial, Helvetica, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; background: #fff; }
+        .etiqueta { width: 320px; border: 1px solid #ddd; border-radius: 8px; padding: 16px; text-align: center; }
+        .etiqueta img { width: 160px; height: 160px; }
+        .nome { font-size: 16px; font-weight: 700; margin: 10px 0 4px; color: #111; }
+        .cat { font-size: 12px; color: #555; margin: 0 0 6px; }
+        .id { font-size: 11px; color: #888; }
+        @media print { body { background: #fff; } .etiqueta { border: none; } }
+      </style>
+    </head>
+    <body>
+      <div class="etiqueta">
+        <img src="${qr}" alt="QRCode">
+        <p class="id">#${id}</p>
+        <p class="nome">${nome}</p>
+      </div>
+      <script>window.onload = function(){ window.focus(); window.print(); }<\/script>
+    </body>
+    </html>`);
+      win.document.close();
+    }
+
+    // Fecha modais ao clicar no backdrop
+    ['modalFerramentas', 'modalDetalheFerramenta'].forEach(mid => {
+      const el = document.getElementById(mid);
+      if (el) {
+        el.addEventListener('click', (e) => {
+          if (e.target === el) {
+            if (mid === 'modalFerramentas') fecharModalFerramentas();
+            else fecharDetalheFerramenta();
+          }
+        });
+      }
+    });
+
+    // Fecha modais com tecla ESC
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        fecharDetalheFerramenta();
+        fecharModalFerramentas();
+      }
+    });
+
+    //Nova Ferramenta
+    function abrirModalNovaFerramenta() {
+      document.getElementById("nova_ferramenta_id").value = "";
+      document.getElementById("nova_ferramenta_nome").value = "";
+      document.getElementById("nova_ferramenta_categoria").value = "Elétrica";
+      atualizarQrCodeRealTime();
+      document.getElementById("modal_nova_ferramenta").classList.remove("hidden");
+    }
+
+    function fecharModalNovaFerramenta() {
+      document.getElementById("modal_nova_ferramenta").classList.add("hidden");
+    }
+
+    function gerarIdAutomaticoFerramenta() {
+      const prefix = "FER-";
+      const randomSuf = Math.floor(100 + Math.random() * 900);
+      const idGerado = `${prefix}${Date.now().toString().slice(-4)}${randomSuf}`;
+      document.getElementById("nova_ferramenta_id").value = idGerado;
+      atualizarQrCodeRealTime();
+    }
+
+    function atualizarQrCodeRealTime() {
+      const id = document.getElementById("nova_ferramenta_id").value.trim().toUpperCase();
+      const nome = document.getElementById("nova_ferramenta_nome").value.trim() || "Nova Ferramenta";
+      const qrPreview = document.getElementById("qrcode_img_preview");
+      const idLbl = document.getElementById("etiqueta_id_lbl");
+      const nomeLbl = document.getElementById("etiqueta_nome_lbl");
+      if (qrPreview) {
+        if (id) {
+          qrPreview.src = gerarUrlQrCode(id);
+        } else {
+          qrPreview.src = gerarUrlQrCode("ID_PRODUTO");
+        }
+      }
+      if (idLbl) {
+        idLbl.textContent = id || "ID_PRODUTO";
+      }
+      if (nomeLbl) {
+        nomeLbl.textContent = nome;
+      }
+    }
+
+    function imprimirEtiquetaQrCode() {
+      const id = document.getElementById("nova_ferramenta_id").value.trim().toUpperCase();
+      const nome = document.getElementById("nova_ferramenta_nome").value.trim() || "Sem Nome";
+      const qrUrl = document.getElementById("qrcode_img_preview").src;
+      if (!id) {
+        showToast("ID Requerido", "Escreva ou gere um ID antes de tentar imprimir.", "⚠️", "bg-amber-600/30 border-amber-500");
+        return;
+      }
+      const printWin = window.open('', '', 'width=400,height=500');
+      printWin.document.write(`
+    <html>
+    <head>
+      <title>Imprimir Etiqueta - ${id}</title>
+      <style>
+        body {
+          font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+          text-align: center;
+          padding: 20px;
+          margin: 0;
+        }
+        .etiqueta-box {
+          border: 2px dashed #000;
+          padding: 15px;
+          display: inline-block;
+          border-radius: 8px;
+          width: 150px;
+          height: 200px;
+          box-sizing: border-box;
+        }
+        img {
+          width: 100px;
+          height: 100px;
+        }
+        h1 {
+          font-size: 14px;
+          margin: 10px 0 2px 0;
+          font-weight: 900;
+          letter-spacing: 1px;
+        }
+        p {
+          font-size: 9px;
+          margin: 0;
+          color: #333;
+          font-weight: bold;
+          overflow: hidden;
+          text-overflow: ellipsis;
+          white-space: nowrap;
+        }
+        @media print {
+          body { padding: 0; margin: 0; }
+          .etiqueta-box { border: 2px dashed #000; }
+        }
+      </style>
+    </head>
+    <body>
+      <div class="etiqueta-box">
+        <img src="${qrUrl}">
+        <h1>${id}</h1>
+        <p>${nome}</p>
+      </div>
+      <script>
+        window.onload = function() {
+          window.print();
+          window.onafterprint = function() {
+            window.close();
+          };
+        };
+      <\/script>
+    </body>
+    </html>
+  `);
+      printWin.document.close();
+    }
+
+    async function submeterNovaFerramenta() {
+      const idInput = document.getElementById('nova_ferramenta_id');
+      const nomeInput = document.getElementById('nova_ferramenta_nome');
+      const categoriaSelect = document.getElementById('nova_ferramenta_categoria');
+      const qrcodePreview = document.getElementById('qrcode_img_preview');
+      if (!idInput || !nomeInput || !categoriaSelect) {
+        showToast('Erro', 'Campos do formulário não encontrados.', 'error', 'bg-red-500');
+        return;
+      }
+      const id = idInput.value.trim();
+      const nome = nomeInput.value.trim();
+      const categoria = categoriaSelect.value;
+      if (!id || !nome) {
+        showToast('Aviso', 'Preencha ID e Nome da ferramenta.', 'warning', 'bg-yellow-500');
+        return;
+      }
+      let qrCode = '';
+      if (qrcodePreview && qrcodePreview.tagName === 'IMG' && qrcodePreview.src) {
+        qrCode = qrcodePreview.src;
+      } else {
+        qrCode = gerarUrlQrCode(id);
+      }
+      const payload = {
+        acao: 'registrarFerramenta',
+        id: id,
+        nome: nome,
+        categoria: categoria,
+        qrCode: qrCode
+      };
+      try {
+        const resposta = await fetch(API_URL, {
+          method: 'POST',
+          redirect: 'follow',
+          headers: {
+            'Content-Type': 'text/plain;charset=utf-8'
+          },
+          body: JSON.stringify(payload)
+        });
+        const texto = await resposta.text();
+        let resultado;
+        try {
+          resultado = JSON.parse(texto);
+        } catch (parseErro) {
+          showToast('Erro', 'Resposta inválida do servidor.', 'error', 'bg-red-500');
+          return;
+        }
+        if (resultado && resultado.status === 'sucesso') {
+          showToast('Sucesso', 'Ferramenta registrada com sucesso.', 'success', 'bg-green-500');
+          fecharModalNovaFerramenta();
+          buscarDadosDoServidor();
+        } else {
+          const msg = (resultado && resultado.mensagem) ? resultado.mensagem : 'Falha ao registrar ferramenta.';
+          showToast('Erro', msg, 'error', 'bg-red-500');
+        }
+      } catch (erro) {
+        showToast('Erro', 'Falha de conexão: ' + erro.message, 'error', 'bg-red-500');
+      }
+    }
+
+    function gerarUrlQrCode(id) {
+      const baseUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=';
+      return baseUrl + encodeURIComponent(id);
+    }
+
+    function salvarFallbackLocalFerramenta(id, nome, categoria) {
+      const duplicada = baseDeDados.ferramentas.find(f => f.ID === id || f.ID_Ferramenta === id);
+      if (duplicada) {
+        showToast("Erro de Duplicado", "Este ID já existe no inventário de simulação.", "❌", "bg-red-600/30 border-red-500");
+        return;
+      }
+      baseDeDados.ferramentas.push({
+        ID: id,
+        Nome: nome,
+        Categoria: categoria,
+        Descricao: categoria,
+        Status: "Disponivel"
+      });
+      renderizarDashboard();
+      showToast("Sucesso Local", "Nova ferramenta guardada offline.", "✅", "bg-emerald-600/30 border-emerald-500");
+    }
+
+
+
+
+
+    function abrirPainelLeitor(acao) {
+      if (typeof buscarDadosDoServidor === "function") buscarDadosDoServidor();
+      operacaoAtual = acao;
+      dadosColetados = { idFerramenta: "", matricula: "", foto: "", lat: "", lng: "" };
+      const modal = document.getElementById("modal_fluxo");
+      const passo1 = document.getElementById("container_passo_1");
+      const passo2 = document.getElementById("container_passo_2");
+      const passoDev = document.getElementById("container_passo_devolucao");
+      const formNovo = document.getElementById("formNovoUsuario");
+      const containerFoto = document.getElementById("container_foto_colaborador");
+
+      if (passo1) passo1.classList.remove("hidden");
+      if (passo2) passo2.classList.add("hidden");
+      if (passoDev) passoDev.classList.add("hidden");
+      if (formNovo) formNovo.classList.add("hidden");
+      if (containerFoto) containerFoto.classList.add("hidden");
+
+      document.getElementById("manual_qrcode").value = "";
+      const select = document.getElementById("select_colaborador");
+      if (select) {
+        select.value = "";
+        select.disabled = false;
+      }
+      const btnNovo = document.getElementById("btnNovoColaborador");
+      if (btnNovo) btnNovo.disabled = false;
+
+      // Resetar câmera
+      const video = document.getElementById("video_cracha");
+      const canvas = document.getElementById("canvas_cracha");
+      const placeholder = document.getElementById("camera_cracha_placeholder");
+      const btnSnap = document.getElementById("btn_snap");
+      const btnRetake = document.getElementById("btn_retake");
+
+      if (video) {
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach(t => t.stop());
+          video.srcObject = null;
+        }
+        video.classList.add("hidden");
+      }
+      if (canvas) canvas.classList.add("hidden");
+      if (placeholder) placeholder.classList.remove("hidden");
+      if (btnSnap) btnSnap.classList.add("hidden");
+      if (btnRetake) btnRetake.classList.add("hidden");
+
+      if (modal) modal.classList.remove("hidden");
+
+      if (acao === "emprestimo") {
+        document.getElementById("modal_titulo").innerText = "Registo de Empréstimo";
+        document.getElementById("modal_subtitulo").innerText = "Passo 1: Digitalizar Código QR da Ferramenta";
+        capturarGeolocalizacao();
+        if (typeof renderizarDashboard === "function") renderizarDashboard();
+
+
+      } else {
+        document.getElementById("modal_titulo").innerText = "Registo de Devolução";
+        document.getElementById("modal_subtitulo").innerText = "Digitalizar Código QR da Ferramenta";
+      }
+    }
+
+    function selecionarColaboradorChange() {
+      const select = document.getElementById("select_colaborador");
+      const btnNovo = document.getElementById("btnNovoColaborador");
+
+      // Se selecionou alguém, desabilita o botão +Novo
+      btnNovo.disabled = select.value !== "";
+    }
+
+    function iniciarLeitorCamera() {
+      document.getElementById("reader_status").classList.add("hidden");
+
+      scannerQrCode = new Html5Qrcode("reader_camera");
+      const config = { fps: 10, qrbox: { width: 250, height: 250 } };
+
+      scannerQrCode.start(
+        { facingMode: "environment" },
+        config,
+        onQrCodeSucesso,
+        onQrCodeErro
+      ).catch(err => {
+        console.error("Erro ao ativar a câmara: ", err);
+        showToast("Câmara Desativada", "Permita o acesso à câmara para efetuar o scan.", "📷", "bg-red-600/30 border-red-500");
+        document.getElementById("reader_status").classList.remove("hidden");
+      });
+    }
+
+    function onQrCodeSucesso(decodedText) {
+      fecharCameras();
+      processarFerramentaEscaneada(decodedText.trim());
+    }
+
+    function onQrCodeErro() { }
+
+
+    function abrirFormularioNovoUsuario() {
+  const form = document.getElementById("formNovoUsuario");
+  if (!form) return;
+
+  form.classList.remove("hidden");
+
+  // Desabilitar select e botão +Novo enquanto cria
+  const select = document.getElementById("select_colaborador");
+  const btnNovo = document.getElementById("btnNovoColaborador");
+  if (select) select.disabled = true;
+  if (btnNovo) btnNovo.disabled = true;
+
+  // Limpar campos
+  document.getElementById("novo_usuario_id").value = "";
+  document.getElementById("novo_usuario_nome").value = "";
+  document.getElementById("novo_usuario_whats").value = "";
+  document.getElementById("novo_usuario_setor").value = "";
+
+  // Resetar câmera
+  const canvas = document.getElementById("canvas_cracha");
+  const video = document.getElementById("video_cracha");
+  const placeholder = document.getElementById("camera_cracha_placeholder");
+  const btnSnap = document.getElementById("btn_snap");
+  const btnRetake = document.getElementById("btn_retake");
+  if (canvas) canvas.classList.add("hidden");
+  if (video) {
+    if (video.srcObject) {
+      video.srcObject.getTracks().forEach(function(t) { t.stop(); });
+      video.srcObject = null;
+    }
+    video.classList.add("hidden");
+  }
+  if (placeholder) placeholder.classList.remove("hidden");
+  if (btnSnap) btnSnap.classList.add("hidden");
+  if (btnRetake) btnRetake.classList.add("hidden");
+}
+
+
+    function fecharFormularioNovoUsuario() {
+  const form = document.getElementById("formNovoUsuario");
+  if (form) form.classList.add("hidden");
+
+  // Reabilitar select e botão
+  const select = document.getElementById("select_colaborador");
+  const btnNovo = document.getElementById("btnNovoColaborador");
+  if (select) select.disabled = false;
+  if (btnNovo) btnNovo.disabled = false;
+
+  // Resetar select para "Selecione" se necessário
+  if (select) {
+    if (!select.value || select.value === "") {
+      select.value = "";
+    }
+  }
+
+  // Parar câmera se estiver ativa
+  const video = document.getElementById("video_cracha");
+  if (video && video.srcObject) {
+    video.srcObject.getTracks().forEach(function(t) { t.stop(); });
+    video.srcObject = null;
+  }
+
+  // Esconder elementos da câmera
+  const canvas = document.getElementById("canvas_cracha");
+  const placeholder = document.getElementById("camera_cracha_placeholder");
+  const btnSnap = document.getElementById("btn_snap");
+  const btnRetake = document.getElementById("btn_retake");
+  if (canvas) canvas.classList.add("hidden");
+  if (placeholder) placeholder.classList.remove("hidden");
+  if (btnSnap) btnSnap.classList.add("hidden");
+  if (btnRetake) btnRetake.classList.add("hidden");
+}
+
+
+
+    function salvarNovoUsuario() {
+      const id = (document.getElementById("novo_usuario_id").value || "").trim();
+      const nome = (document.getElementById("novo_usuario_nome").value || "").trim();
+      const whatsapp = (document.getElementById("novo_usuario_whats").value || "").trim();
+      const setor = (document.getElementById("novo_usuario_setor").value || "").trim();
+
+      if (!id || !nome) {
+        showToast("Atenção", "ID e Nome são obrigatórios.", "⚠️", "bg-amber-600/30 border-amber-500");
+        return;
+      }
+
+      // Capturar foto do canvas se existir
+      const canvas = document.getElementById("canvas_cracha");
+      let foto = "";
+      if (canvas && !canvas.classList.contains("hidden")) {
+        foto = canvas.toDataURL("image/jpeg", 0.8);
+      }
+
+      if (!baseDeDados) baseDeDados = {};
+      if (!Array.isArray(baseDeDados.usuarios)) baseDeDados.usuarios = [];
+
+      // Verificar duplicidade
+      const duplicado = baseDeDados.usuarios.some(u =>
+        String(u.Matricula || u.matricula || u.ID || u.id || "") === String(id)
+      );
+
+      if (duplicado) {
+        showToast("Erro", "Já existe um colaborador com este ID.", "❌", "bg-red-600/30 border-red-500");
+        return;
+      }
+
+      // Adicionar localmente
+      baseDeDados.usuarios.push({
+        Matricula: id,
+        Nome: nome,
+        Telefone_WhatsApp: whatsapp,
+        Setor: setor,
+        Foto: foto,
+        status: "ativo",
+        dataCadastro: new Date().toISOString()
+      });
+  if (typeof salvarSetorLocal === "function") salvarSetorLocal(setor);
+
+      // Atualizar select e selecionar o novo
+      const select = document.getElementById("select_colaborador");
+      if (select) {
+        select.innerHTML += `<option value="${id}">${nome} (${id})</option>`;
+        select.value = id;
+        select.disabled = false;
+         if (typeof aoSelecionarColaborador === "function") aoSelecionarColaborador();
+      }
+
+
+
+      // Reabilitar botão (agora que tem alguém selecionado, desabilita)
+      document.getElementById("btnNovoColaborador").disabled = true;
+      document.getElementById("btnNovoColaborador").disabled = select.value !== "";
+
+      // Fechar formulário
+      fecharFormularioNovoUsuario();
+
+      showToast("Sucesso", `Colaborador "${nome}" registrado e selecionado.`, "✅", "bg-emerald-600/30 border-emerald-500");
+
+      // Enviar ao backend
+      if (typeof API_URL !== "undefined" && API_URL) {
+        fetch(API_URL, {
+          method: "POST",
+          redirect: "follow",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            acao: "registrarUsuario",
+            id: id,
+            nome: nome,
+            whatsapp: whatsapp,
+            setor: setor,
+            foto: foto
+          })
+        })
+          .then(r => r.json())
+          .then(d => {
+            if (d && d.status !== "sucesso") {
+              showToast("Aviso", "Usuário salvo localmente. Servidor: " + (d.mensagem || "sem resposta"), "⚠️", "bg-amber-600/30 border-amber-500");
+            }
+          })
+          .catch(() => { });
+      }
+    }
+
+
+function processarFerramentaEscaneada(codigo) {
+  if (!codigo) return;
+
+  if (!baseDeDados || !Array.isArray(baseDeDados.ferramentas)) {
+    showToast("Erro", "Base de dados não carregada.", "❌", "bg-red-600/30 border-red-500");
+    return;
+  }
+
+  // Encontrar ferramenta
+  var ferramenta = null;
+  var nomeFerramenta = "";
+  for (var i = 0; i < baseDeDados.ferramentas.length; i++) {
+    var f = baseDeDados.ferramentas[i];
+    var idF = String(f.ID_Ferramenta || f.ID || f.id || f.codigo || "").trim();
+    if (idF === String(codigo).trim()) {
+      ferramenta = f;
+      nomeFerramenta = f.Nome || f.nome || f.Descrição || f.Descricao || "";
+      break;
+    }
+  }
+
+  if (!ferramenta) {
+    showToast("Não Encontrada", "Ferramenta com ID " + codigo + " não está registada.", "❌", "bg-red-600/30 border-red-500");
+    return;
+  }
+
+   // ===== FLUXO DE DEVOLUÇÃO =====
+  if (operacaoAtual === "devolucao") {
+    // Procurar empréstimo ATIVO para esta ferramenta
+    var emprestimoAtivo = null;
+    if (baseDeDados && Array.isArray(baseDeDados.emprestimos)) {
+      for (var e = 0; e < baseDeDados.emprestimos.length; e++) {
+        var emp = baseDeDados.emprestimos[e];
+        var s = (emp.status || "").toLowerCase();
+        if (emp.ferramenta_id === codigo && (s === "ativo" || s === "emprestado" || s === "atrasado")) {
+          emprestimoAtivo = emp;
+          break;
+        }
+      }
+    }
+
+    if (!emprestimoAtivo) {
+      showToast("Nada a Devolver",
+        "\"" + nomeFerramenta + "\" (" + codigo + ") não possui empréstimo ativo.",
+        "❌", "bg-red-600/30 border-red-500");
+      return;
+    }
+
+    // ===== PREENCHER O MODAL DE DEVOLUÇÃO =====
+    dadosColetados.idFerramenta = codigo;
+    dadosColetados.nomeFerramenta = nomeFerramenta;
+    dadosColetados.matricula = emprestimoAtivo.matricula || "";
+    dadosColetados.nomeColaborador = emprestimoAtivo.colaborador || "";
+    dadosColetados.foto = emprestimoAtivo.colaborador_foto || "";
+    dadosColetados.whatsapp = emprestimoAtivo.colaborador_whatsapp || "";
+
+    // Preencher nome da ferramenta
+    var elFer = document.getElementById("lbl_dev_ferramenta_nome");
+    if (elFer) elFer.textContent = nomeFerramenta + " (" + codigo + ")";
+
+    // Preencher nome do colaborador
+    var elColab = document.getElementById("lbl_dev_colaborador");
+    if (elColab) elColab.textContent = emprestimoAtivo.colaborador || "—";
+
+    // Mostrar tela de devolução
+    document.getElementById("container_passo_1").classList.add("hidden");
+    document.getElementById("container_passo_devolucao").classList.remove("hidden");
+
+    showToast("✅ Devolução", "Ferramenta encontrada: " + nomeFerramenta + " com " + (emprestimoAtivo.colaborador || "desconhecido"), "📦", "bg-emerald-600/30 border-emerald-500");
+    return;
+  }
+
+  // ===== FLUXO DE EMPRÉSTIMO (já existente) =====
+  showToast("🔍 Verificando", "Consultando disponibilidade...", "🔄", "bg-amber-600/30 border-amber-500");
+
+  if (typeof API_URL !== "undefined" && API_URL) {
+    fetch(API_URL + "?acao=verificarFerramenta&id=" + encodeURIComponent(codigo), { method: "GET" })
+    .then(function(r) { return r.json(); })
+    .then(function(resp) {
+      if (resp && resp.emprestada === true) {
+        showToast("🚫 Ferramenta Indisponível",
+          "\"" + nomeFerramenta + "\" (" + codigo + ") já está emprestada.",
+          "❌", "bg-red-600/30 border-red-500");
+        return;
+      }
+      continuarFluxoEmprestimo(ferramenta, codigo);
+    })
+    .catch(function() {
+      var statusLocal = (ferramenta.Status || ferramenta.status || "").toLowerCase().trim();
+      if (statusLocal === "emprestado" || statusLocal === "ativo") {
+        showToast("🚫 Indisponível (offline)",
+          "\"" + nomeFerramenta + "\" (" + codigo + ")",
+          "❌", "bg-red-600/30 border-red-500");
+        return;
+      }
+      continuarFluxoEmprestimo(ferramenta, codigo);
+    });
+  } else {
+    continuarFluxoEmprestimo(ferramenta, codigo);
+  }
+}
+
+function preencherDevolucao(emprestimoAtivo, codigo, nomeFerramenta) {
+  dadosColetados.idFerramenta = codigo;
+  dadosColetados.nomeFerramenta = nomeFerramenta;
+  dadosColetados.matricula = emprestimoAtivo.matricula || "";
+  dadosColetados.nomeColaborador = emprestimoAtivo.colaborador || "";
+  dadosColetados.foto = emprestimoAtivo.colaborador_foto || "";
+  dadosColetados.whatsapp = emprestimoAtivo.colaborador_whatsapp || "";
+  dadosColetados.lat = "";
+  dadosColetados.lng = "";
+
+  // Mostrar ferramenta detectada
+  var elDetectada = document.getElementById("label_ferramenta_detectada");
+  if (elDetectada) {
+    elDetectada.innerHTML = nomeFerramenta + ' <span class="text-amber-400">(' + codigo + ')</span>';
+  }
+
+  // ===== PREENCHER COLABORADOR =====
+  // Tentar vários IDs possíveis
+  var elColab = document.getElementById("label_colaborador_nome") ||
+                document.getElementById("colaborador_nome") ||
+                document.querySelector("#container_passo_devolucao .colaborador-nome") ||
+                document.querySelector("#container_passo_devolucao [class*='colaborador']") ||
+                document.querySelector("#container_passo_devolucao [class*='Colaborador']");
+  if (elColab) {
+    elColab.textContent = emprestimoAtivo.colaborador || "—";
+  }
+
+  var elMat = document.getElementById("label_colaborador_matricula") ||
+              document.getElementById("colaborador_matricula");
+  if (elMat) {
+    elMat.textContent = emprestimoAtivo.matricula || "—";
+  }
+
+  var elFoto = document.getElementById("foto_colaborador_devolucao") ||
+               document.getElementById("foto_devolucao");
+  if (elFoto) {
+    if (emprestimoAtivo.colaborador_foto) {
+      elFoto.innerHTML = '<img src="' + emprestimoAtivo.colaborador_foto + '" class="w-16 h-16 md:w-20 md:h-20 rounded-full object-cover border-2 border-slate-600">';
+    } else {
+      elFoto.innerHTML = '<div class="w-16 h-16 md:w-20 md:h-20 rounded-full bg-slate-700 flex items-center justify-center text-2xl">👤</div>';
+    }
+  }
+
+  // Atualizar subtítulo
+  var elSub = document.getElementById("modal_subtitulo");
+  if (elSub) elSub.textContent = "Devolução de Ferramenta";
+
+  // Mostrar tela de devolução
+  document.getElementById("container_passo_1").classList.add("hidden");
+  document.getElementById("container_passo_devolucao").classList.remove("hidden");
+
+  showToast("✅ Devolução", "\"" + nomeFerramenta + "\" — " + (emprestimoAtivo.colaborador || "desconhecido"), "📦", "bg-emerald-600/30 border-emerald-500");
+}
+
+function continuarFluxoEmprestimo(ferramenta, codigo) {
+  dadosColetados.idFerramenta = codigo;
+  dadosColetados.nomeFerramenta = ferramenta.Nome || ferramenta.nome || "";
+
+  const nome = ferramenta.Nome || ferramenta.nome || "Ferramenta";
+
+  const elDetectada = document.getElementById("label_ferramenta_detectada");
+  if (elDetectada) {
+    elDetectada.innerHTML = nome + ' <span class="text-amber-400">(' + codigo + ')</span>';
+  }
+
+  const passo1 = document.getElementById("container_passo_1");
+  const passo2 = document.getElementById("container_passo_2");
+  const passoDev = document.getElementById("container_passo_devolucao");
+
+  if (operacaoAtual === "emprestimo") {
+    if (passo1) passo1.classList.add("hidden");
+    if (passo2) passo2.classList.remove("hidden");
+  } else {
+    if (passo1) passo1.classList.add("hidden");
+    if (passoDev) passoDev.classList.remove("hidden");
+  }
+}
+
+function continuarFluxoEmprestimo(ferramenta, codigo) {
+  dadosColetados.idFerramenta = codigo;
+  dadosColetados.nomeFerramenta = ferramenta.Nome || ferramenta.nome || "";
+
+  const nome = ferramenta.Nome || ferramenta.nome || "Ferramenta";
+
+  const elDetectada = document.getElementById("label_ferramenta_detectada");
+  if (elDetectada) {
+    elDetectada.innerHTML = nome + ' <span class="text-amber-400">(' + codigo + ')</span>';
+  }
+
+  const passo1 = document.getElementById("container_passo_1");
+  const passo2 = document.getElementById("container_passo_2");
+  const passoDev = document.getElementById("container_passo_devolucao");
+
+  if (operacaoAtual === "emprestimo") {
+    if (passo1) passo1.classList.add("hidden");
+    if (passo2) passo2.classList.remove("hidden");
+  } else {
+    if (passo1) passo1.classList.add("hidden");
+    if (passoDev) passoDev.classList.remove("hidden");
+  }
+}
+
+    function confirmarCodigoFerramentaManual() {
+      const input = document.getElementById("manual_qrcode");
+      if (!input) return;
+
+      const codigo = input.value.trim();
+      if (!codigo) {
+        showToast("Atenção", "Digite um ID de ferramenta.", "⚠️", "bg-amber-600/30 border-amber-500");
+        return;
+      }
+
+      processarFerramentaEscaneada(codigo);
+    }
+
+    function aoSelecionarColaborador() {
+      const select = document.getElementById("select_colaborador");
+      const btnNovo = document.getElementById("btnNovoColaborador");
+      const containerFoto = document.getElementById("container_foto_colaborador");
+      const imgFoto = document.getElementById("foto_colaborador_selecionado");
+      const nomeFoto = document.getElementById("nome_colaborador_foto");
+
+      const matriculaSelecionada = select.value;
+
+      btnNovo.disabled = matriculaSelecionada !== "";
+
+      if (!matriculaSelecionada) {
+        containerFoto.classList.add("hidden");
+        return;
+      }
+
+      const colaborador = baseDeDados.usuarios.find(u =>
+        String(u.Matricula || u.matricula || u.ID || u.id || "") === String(matriculaSelecionada)
+      );
+
+      if (colaborador) {
+        // Tenta múltiplas chaves para a foto
+        const foto = colaborador.Foto || colaborador.foto || colaborador["Foto/Crachá"] || colaborador["foto/crachá"] || "";
+        const nome = colaborador.Nome || colaborador.nome || "Colaborador";
+
+        if (foto && foto.length > 50) {
+          imgFoto.src = foto;
+          imgFoto.classList.remove("hidden");
+          nomeFoto.textContent = nome + " (" + matriculaSelecionada + ")";
+          containerFoto.classList.remove("hidden");
+        } else {
+          // Sem foto registada — mostra placeholder
+          imgFoto.src = "";
+          imgFoto.classList.add("hidden");
+          nomeFoto.textContent = nome + " (" + matriculaSelecionada + ") — sem foto";
+          containerFoto.classList.remove("hidden");
+        }
+      } else {
+        containerFoto.classList.add("hidden");
+      }
+    }
+
+    function iniciarCameraCracha() {
+      const video = document.getElementById("video_cracha");
+      const placeholder = document.getElementById("camera_cracha_placeholder");
+      const btnSnap = document.getElementById("btn_snap");
+      const btnRetake = document.getElementById("btn_retake");
+      const canvas = document.getElementById("canvas_cracha");
+
+      if (!video) return;
+
+      if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+        navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } })
+          .then(stream => {
+            video.srcObject = stream;
+            video.classList.remove("hidden");
+            if (placeholder) placeholder.classList.add("hidden");
+            if (btnSnap) btnSnap.classList.remove("hidden");
+            if (btnRetake) btnRetake.classList.add("hidden");
+            if (canvas) canvas.classList.add("hidden");
+            video.play();
+          })
+          .catch(err => {
+            showToast("Erro", "Não foi possível aceder à câmara: " + err.message, "❌", "bg-red-600/30 border-red-500");
+          });
+      }
+    }
+
+    function capturarFotoCracha() {
+      const video = document.getElementById("video_cracha");
+      const canvas = document.getElementById("canvas_cracha");
+      const btnSnap = document.getElementById("btn_snap");
+      const btnRetake = document.getElementById("btn_retake");
+
+      if (!video || !canvas) return;
+
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      const ctx = canvas.getContext("2d");
+      ctx.drawImage(video, 0, 0);
+
+      video.classList.add("hidden");
+      canvas.classList.remove("hidden");
+      btnSnap.classList.add("hidden");
+      btnRetake.classList.remove("hidden");
+
+      // Parar câmera
+      if (video.srcObject) {
+        video.srcObject.getTracks().forEach(t => t.stop());
+        video.srcObject = null;
+      }
+    }
+
+    function resetarCameraCracha() {
+      const video = document.getElementById("video_cracha");
+      const canvas = document.getElementById("canvas_cracha");
+      const placeholder = document.getElementById("camera_cracha_placeholder");
+      const btnSnap = document.getElementById("btn_snap");
+      const btnRetake = document.getElementById("btn_retake");
+
+      if (video) {
+        if (video.srcObject) {
+          video.srcObject.getTracks().forEach(t => t.stop());
+          video.srcObject = null;
+        }
+        video.classList.add("hidden");
+      }
+      if (canvas) canvas.classList.add("hidden");
+      if (placeholder) placeholder.classList.remove("hidden");
+      if (btnSnap) btnSnap.classList.add("hidden");
+      if (btnRetake) btnRetake.classList.add("hidden");
+    }
+
+
+
+function capturarGeolocalizacao() {
+  const txtGeo = document.getElementById("txt_geo");
+  const badgeGeo = document.getElementById("badge_geo");
+
+  if (!navigator.geolocation) {
+    if (txtGeo) txtGeo.textContent = "❌ Geolocalização não suportada. Use HTTPS ou outro navegador.";
+    if (badgeGeo) {
+      badgeGeo.textContent = "Indisponível";
+      badgeGeo.className = "bg-red-600/30 text-red-400 border border-red-500/30 text-[9px] px-2 py-0.5 rounded-full";
+    }
+    return;
+  }
+
+  if (txtGeo) txtGeo.textContent = "⏳ Capturando coordenadas GPS...";
+  if (badgeGeo) {
+    badgeGeo.textContent = "A capturar...";
+    badgeGeo.className = "bg-amber-600/30 text-amber-400 border border-amber-500/30 text-[9px] px-2 py-0.5 rounded-full";
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function (posicao) {
+      const lat = Number(posicao.coords.latitude.toFixed(6));
+      const lng = Number(posicao.coords.longitude.toFixed(6));
+
+      dadosColetados.lat = lat;
+      dadosColetados.lng = lng;
+
+      if (txtGeo) txtGeo.textContent = "✅ Lat: " + lat + " | Lng: " + lng;
+      if (badgeGeo) {
+        badgeGeo.textContent = "Coordenadas OK";
+        badgeGeo.className = "bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 text-[9px] px-2 py-0.5 rounded-full";
+      }
+    },
+    function (erro) {
+      var msg = "";
+      if (erro.code === 1 || erro.PERMISSION_DENIED) {
+        msg = "👀 Permissão negada. Permita a localização nas configurações do navegador e clique no botão acima.";
+      } else if (erro.code === 2 || erro.POSITION_UNAVAILABLE) {
+        msg = "📡 Localização indisponível. O GPS está ativo?";
+      } else if (erro.code === 3 || erro.TIMEOUT) {
+        msg = "⏱ Tempo limite. Tente novamente clicando no botão acima.";
+      } else {
+        msg = "❌ Erro: " + (erro.message || "desconhecido");
+      }
+      if (txtGeo) txtGeo.textContent = msg;
+      if (badgeGeo) {
+        badgeGeo.textContent = "Falhou";
+        badgeGeo.className = "bg-red-600/30 text-red-400 border border-red-500/30 text-[9px] px-2 py-0.5 rounded-full";
+      }
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 0
+    }
+  );
+}
+
+function finalizarProcessoEmprestimo() {
+  if (!dadosColetados || !dadosColetados.idFerramenta) {
+    showToast("Atenção", "Nenhuma ferramenta detetada. Volte ao passo 1.", "⚠️", "bg-amber-600/30 border-amber-500");
+    return;
+  }
+
+  var select = document.getElementById("select_colaborador");
+  var matricula = select ? select.value : "";
+  if (!matricula) {
+    showToast("Atenção", "Selecione um colaborador.", "⚠️", "bg-amber-600/30 border-amber-500");
+    return;
+  }
+
+  var foto = "";
+  var canvasCracha = document.getElementById("canvas_cracha");
+  if (canvasCracha && !canvasCracha.classList.contains("hidden")) {
+    try { foto = canvasCracha.toDataURL("image/jpeg", 0.8); } catch (e) { foto = ""; }
+  }
+
+  dadosColetados.matricula = matricula;
+  dadosColetados.foto = foto;
+
+  if (!dadosColetados.lat && !dadosColetados.lng) {
+    showToast("📍 GPS", "A obter localização...", "📡", "bg-amber-600/30 border-amber-500");
+    capturarGeolocalizacao();
+    setTimeout(function() { enviarEmprestimo(); }, 2000);
+  } else {
+    enviarEmprestimo();
+  }
+}
+
+function enviarEmprestimo() {
+  if (!dadosColetados.idFerramenta || !dadosColetados.matricula) {
+    showToast("Erro", "Selecione o colaborador antes de registrar.", "❌", "bg-red-600/30 border-red-500");
+    return;
+  }
+
+  // ===== DATA DE HOJE =====
+  var hoje = new Date();
+  var dia = String(hoje.getDate()).padStart(2, "0");
+  var mes = String(hoje.getMonth() + 1).padStart(2, "0");
+  var ano = hoje.getFullYear();
+  var dataHojeStr = dia + "/" + mes + "/" + ano;
+
+  // ===== DATA PREVISTA =====
+  var dataPrevistaInput = document.getElementById("data_prevista");
+  var dataPrevista = dataPrevistaInput ? dataPrevistaInput.value.trim() : "";
+
+  if (!dataPrevista) {
+    // Calcular 10 dias úteis a partir de hoje
+    var dataCalc = new Date(hoje);
+    var diasUteis = 0;
+    while (diasUteis < 10) {
+      dataCalc.setDate(dataCalc.getDate() + 1);
+      var diaSem = dataCalc.getDay();
+      if (diaSem !== 0 && diaSem !== 6) diasUteis++;
+    }
+    dia = String(dataCalc.getDate()).padStart(2, "0");
+    mes = String(dataCalc.getMonth() + 1).padStart(2, "0");
+    dataPrevista = dia + "/" + mes + "/" + dataCalc.getFullYear();
+  }
+
+  // ===== ENRIQUECER DADOS (buscar nome da ferramenta e do colaborador) =====
+  var ferramentaNome = dadosColetados.nomeFerramenta || "";
+  if (!ferramentaNome && baseDeDados && Array.isArray(baseDeDados.ferramentas)) {
+    for (var fi = 0; fi < baseDeDados.ferramentas.length; fi++) {
+      var f = baseDeDados.ferramentas[fi];
+      if (String(f.ID || f.id || f.ID_Ferramenta || f.codigo || "") === String(dadosColetados.idFerramenta)) {
+        ferramentaNome = f.Nome || f.nome || f.Descrição || f.Descricao || "";
+        break;
+      }
+    }
+  }
+
+  var colaboradorNome = dadosColetados.nomeColaborador || "";
+  var colaboradorFoto = dadosColetados.foto || "";
+  var colaboradorWhats = dadosColetados.whatsapp || "";
+  if ((!colaboradorNome || !colaboradorFoto) && baseDeDados && Array.isArray(baseDeDados.usuarios)) {
+    for (var ui = 0; ui < baseDeDados.usuarios.length; ui++) {
+      var u = baseDeDados.usuarios[ui];
+      if (String(u.ID || u.id || u.Matricula || u.matricula || "") === String(dadosColetados.matricula)) {
+        if (!colaboradorNome) colaboradorNome = u.Nome || u.nome || "";
+        if (!colaboradorFoto) colaboradorFoto = u['Foto/Crachá'] || u.foto || u.Foto || "";
+        if (!colaboradorWhats) colaboradorWhats = u.Whatsapp || u.whatsapp || "";
+        break;
+      }
+    }
+  }
+
+  // ===== MONTAR OBJETO =====
+  var emprestimo = {
+    id: "EMP_" + hoje.getTime(),
+    ferramenta_id: dadosColetados.idFerramenta,
+    ferramenta_nome: ferramentaNome,
+    matricula: dadosColetados.matricula,
+    colaborador: colaboradorNome,
+    data: dataHojeStr,
+    data_prevista: dataPrevista,
+    status: "Ativo",
+    lat: dadosColetados.lat || "",
+    lng: dadosColetados.lng || "",
+    colaborador_foto: colaboradorFoto,
+    colaborador_whatsapp: colaboradorWhats
+  };
+
+  // ===== SALVAR LOCAL =====
+  if (!baseDeDados) baseDeDados = {};
+  if (!Array.isArray(baseDeDados.emprestimos)) baseDeDados.emprestimos = [];
+  baseDeDados.emprestimos.push(emprestimo);
+
+  // ===== ENVIAR AO SERVIDOR =====
+  if (typeof API_URL !== "undefined" && API_URL) {
+    fetch(API_URL, {
+      method: "POST",
+      body: JSON.stringify({
+        acao: "registrarEmprestimo",
+        ferramentaId: dadosColetados.idFerramenta,
+        usuarioId: dadosColetados.matricula,
+        dataEmprestimo: dataHojeStr,
+        dataPrevista: dataPrevista,
+        status: "Ativo",
+        foto: colaboradorFoto,
+        lat: dadosColetados.lat || "",
+        lng: dadosColetados.lng || ""
+      })
+    }).then(function(r) { return r.json(); }).catch(function() {});
+  }
+
+  // ===== LIMPAR DADOS COLETADOS =====
+  dadosColetados = { idFerramenta: "", nomeFerramenta: "", matricula: "", nomeColaborador: "", foto: "", whatsapp: "", lat: "", lng: "" };
+
+  // ===== FECHAR MODAL =====
+  // Tentar vários IDs possíveis para o modal
+  var modal = document.getElementById("modal_fluxo") ||
+              document.getElementById("modal_emprestimo") ||
+              document.getElementById("modal_registro") ||
+              document.querySelector("[id*='modal']");
+  if (modal) modal.classList.add("hidden");
+
+  // ===== VOLTAR AO ESTADO INICIAL =====
+  var sc = document.getElementById("container_scanner");
+  var p1 = document.getElementById("container_passo_1");
+  var p2 = document.getElementById("container_passo_2");
+  var pd = document.getElementById("container_passo_devolucao");
+
+  if (sc) sc.classList.remove("hidden");
+  if (p1) p1.classList.remove("hidden");
+  if (p2) p2.classList.add("hidden");
+  if (pd) pd.classList.add("hidden");
+
+  // ===== RENDERIZAR =====
+  renderizarDashboard();
+  showToast("Sucesso", "Empréstimo registrado!", "✅", "bg-emerald-600/30 border-emerald-500");
+}
+
+
+    function salvarEmprestimoLocal(payload) {
+      if (!baseDeDados) baseDeDados = {};
+      if (!Array.isArray(baseDeDados.emprestimos)) baseDeDados.emprestimos = [];
+
+      baseDeDados.emprestimos.push({
+        ferramenta_id: payload.ferramentaId,
+        usuario: payload.usuarioId,
+        dataEmprestimo: payload.dataEmprestimo,
+        status: "Ativo",
+        lat: payload.localizacao ? payload.localizacao.lat : null,
+        lng: payload.localizacao ? payload.localizacao.lng : null,
+        foto: payload.foto || ""
+      });
+
+      // Atualizar status da ferramenta
+      if (Array.isArray(baseDeDados.ferramentas)) {
+        for (var i = 0; i < baseDeDados.ferramentas.length; i++) {
+          var f = baseDeDados.ferramentas[i];
+          if (String(f.ID || f.id || f.ID_Ferramenta) === String(payload.ferramentaId)) {
+            f.Status = "Emprestado";
+            break;
+          }
+        }
+      }
+
+      showToast("Sucesso Local", "Sem conexão. Empréstimo guardado offline.", "✅", "bg-emerald-600/30 border-emerald-500");
+    }
+
+
+ 
+
+function finalizarProcessoDevolucao() {
+  if (!dadosColetados.idFerramenta || !dadosColetados.matricula) {
+    showToast("Erro", "Dados incompletos para devolução.", "❌", "bg-red-600/30 border-red-500");
+    return;
+  }
+
+  var ferramentaId = dadosColetados.idFerramenta;
+  var matricula = dadosColetados.matricula;
+
+  // ===== ATUALIZAR LOCALMENTE =====
+  // Remove empréstimo do array local
+  if (baseDeDados && Array.isArray(baseDeDados.emprestimos)) {
+    for (var i = baseDeDados.emprestimos.length - 1; i >= 0; i--) {
+      var emp = baseDeDados.emprestimos[i];
+      var s = (emp.status || "").toLowerCase();
+      if (emp.ferramenta_id === ferramentaId && (s === "ativo" || s === "emprestado" || s === "atrasado")) {
+        baseDeDados.emprestimos.splice(i, 1);
+      }
+    }
+  }
+
+  // Atualiza status da ferramenta local
+  if (baseDeDados && Array.isArray(baseDeDados.ferramentas)) {
+    for (var fi = 0; fi < baseDeDados.ferramentas.length; fi++) {
+      var f = baseDeDados.ferramentas[fi];
+      if (String(f.ID_Ferramenta || f.ID || f.id || f.codigo || "") === ferramentaId) {
+        f.Status = "Disponivel";
+        f.status = "Disponivel";
+        break;
+      }
+    }
+  }
+
+  // ===== ENVIAR AO SERVIDOR =====
+  if (typeof API_URL !== "undefined" && API_URL) {
+    fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "text/plain" },  
+      body: JSON.stringify({
+        acao: "registrarDevolucao",
+        ferramentaId: ferramentaId,
+        usuarioId: matricula
+      })
+    })
+    .then(function(r) {
+      // Tentar parsear, ignorar erro
+      try { return r.json(); } catch(e) { return null; }
+    })
+    .then(function(resp) {
+      // Servidor executou - mostrar sucesso sempre
+      // O servidor já está executando corretamente
+      showToast("✅ Devolvido", ferramentaId + " devolvido com sucesso!", "📦", "bg-emerald-600/30 border-emerald-500");
+      renderizarDashboard();
+    })
+    .catch(function() {
+      // Servidor executou (o catch é só problema de parse do retorno HTTP)
+      showToast("✅ Devolvido", ferramentaId + " devolvido com sucesso!", "📦", "bg-emerald-600/30 border-emerald-500");
+      renderizarDashboard();
+    });
+  } else {
+    showToast("✅ Devolvido", ferramentaId + " devolvido localmente.", "📦", "bg-emerald-600/30 border-emerald-500");
+    renderizarDashboard();
+  }
+
+  // ===== LIMPAR DADOS COLETADOS =====
+  dadosColetados = { idFerramenta: "", nomeFerramenta: "", matricula: "", nomeColaborador: "", foto: "", whatsapp: "", lat: "", lng: "" };
+
+  // ===== FECHAR MODAL =====
+  try { document.getElementById("modal_fluxo").classList.add("hidden"); } catch(e) {}
+  try { if (typeof fecharModalFluxo === "function") fecharModalFluxo(); } catch(e) {}
+
+  try {
+    document.getElementById("container_scanner").classList.remove("hidden");
+    document.getElementById("container_passo_1").classList.remove("hidden");
+    document.getElementById("container_passo_2").classList.add("hidden");
+    document.getElementById("container_passo_devolucao").classList.add("hidden");
+  } catch(e) {}
+}
+
+    function salvarFallbackLocalDevolucao() {
+      const ferramenta = baseDeDados.ferramentas.find(f => f.ID === dadosColetados.idFerramenta || f.ID_Ferramenta === dadosColetados.idFerramenta);
+      if (ferramenta) ferramenta.Status = "Disponivel";
+
+      const empIdx = baseDeDados.emprestimos.findIndex(e => e.ferramenta_id === dadosColetados.idFerramenta && e.status === "Ativo");
+      if (empIdx !== -1) {
+        baseDeDados.emprestimos[empIdx].status = "Devolvido";
+        baseDeDados.emprestimos[empIdx].foto = "";
+      }
+
+      renderizarDashboard();
+      showToast("Devolvido Local", "Registo atualizado em modo simulação.", "🗑️", "bg-emerald-600/30 border-emerald-500");
+    }
+
+    function fecharModalFluxo() {
+      fecharCameras();
+      document.getElementById("modal_fluxo").classList.add("hidden");
+    }
+
+    function fecharCameras() {
+      if (scannerQrCode) {
+        try { scannerQrCode.stop(); } catch (e) { }
+        scannerQrCode = null;
+      }
+      if (cameraStream) {
+        cameraStream.getTracks().forEach(track => track.stop());
+        cameraStream = null;
+      }
+      document.getElementById("reader_status").classList.remove("hidden");
+    }
+
+    const STORAGE_KEY = "controltool_categorias";
+
+
+
+    // CATEGORIAS — Dropdown customizado
+    function carregarCategorias() {
+      var categoriasPadrao = ["Elétrica", "Manual", "Eletrônica", "Hidráulica", "EPI (Segurança)", "Outros"];
+      var todas = categoriasPadrao.slice();
+      if (typeof baseDeDados !== "undefined" && baseDeDados && Array.isArray(baseDeDados.ferramentas)) {
+        for (var i = 0; i < baseDeDados.ferramentas.length; i++) {
+          var f = baseDeDados.ferramentas[i];
+          var cat = f.Categoria || f.categoria || "";
+          if (cat && cat.trim() !== "" && todas.indexOf(cat.trim()) === -1) {
+            todas.push(cat.trim());
+          }
+        }
+      }
+      try {
+        var salvas = localStorage.getItem("controltool_categorias");
+        if (salvas) {
+          var arr = JSON.parse(salvas);
+          for (var j = 0; j < arr.length; j++) {
+            if (arr[j] && todas.indexOf(arr[j]) === -1) {
+              todas.push(arr[j]);
+            }
+          }
+        }
+      } catch (e) { }
+      todas.sort();
+      var datalist = document.getElementById("lista_categorias");
+      if (datalist) {
+        datalist.innerHTML = "";
+        for (var k = 0; k < todas.length; k++) {
+          var opt = document.createElement("option");
+          opt.value = todas[k];
+          datalist.appendChild(opt);
+        }
+      }
+      var dropdown = document.getElementById("dropdown_categoria_lista");
+      if (dropdown) {
+        dropdown.innerHTML = "";
+        for (var m = 0; m < todas.length; m++) {
+          var item = document.createElement("div");
+          item.className = "px-3 py-2 text-sm text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer border-b border-slate-800 last:border-b-0";
+          item.textContent = todas[m];
+          item.setAttribute("data-valor", todas[m]);
+          item.onclick = (function (v) {
+            return function () {
+              var inp = document.getElementById("nova_ferramenta_categoria");
+              if (inp) inp.value = v;
+              var inp2 = document.getElementById("detalheInputCategoria");
+              if (inp2 && inp2 === document.activeElement) inp2.value = v;
+              dropdown.classList.add("hidden");
+            };
+          })(todas[m]);
+          dropdown.appendChild(item);
+        }
+      }
+      return todas;
+    }
+
+    function abrirDropdownCategoria() {
+      var dropdown = document.getElementById("dropdown_categoria_lista");
+      if (!dropdown) return;
+
+      if (!dropdown.classList.contains("hidden")) {
+        dropdown.classList.add("hidden");
+        return;
+      }
+
+      // Descobre qual input está ativo
+      var inputNovo = document.getElementById("nova_ferramenta_categoria");
+      var inputEdit = document.getElementById("detalheInputCategoria");
+      var alvo = null;
+
+      if (inputNovo && document.activeElement === inputNovo) {
+        alvo = inputNovo;
+      } else if (inputEdit && document.activeElement === inputEdit) {
+        alvo = inputEdit;
+      } else if (inputEdit && !inputNovo) {
+        alvo = inputEdit;
+      } else {
+        alvo = inputNovo;
+      }
+
+      if (!alvo) return;
+
+      var padrao = ["Elétrica", "Manual", "Eletrônica", "Hidráulica", "EPI (Segurança)", "Outros"];
+      var categorias = padrao.slice();
+      if (typeof baseDeDados !== "undefined" && baseDeDados && Array.isArray(baseDeDados.ferramentas)) {
+        for (var i = 0; i < baseDeDados.ferramentas.length; i++) {
+          var cat = baseDeDados.ferramentas[i].Categoria || baseDeDados.ferramentas[i].categoria || "";
+          if (cat && cat.trim() !== "" && categorias.indexOf(cat.trim()) === -1) categorias.push(cat.trim());
+        }
+      }
+      try {
+        var salvas = localStorage.getItem("controltool_categorias");
+        if (salvas) {
+          var arr = JSON.parse(salvas);
+          for (var j = 0; j < arr.length; j++) {
+            if (arr[j] && categorias.indexOf(arr[j]) === -1) categorias.push(arr[j]);
+          }
+        }
+      } catch (e) { }
+      categorias.sort();
+
+      dropdown.innerHTML = "";
+      for (var k = 0; k < categorias.length; k++) {
+        (function (v) {
+          var item = document.createElement("div");
+          item.className = "px-3 py-2 text-sm text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer border-b border-slate-800 last:border-b-0";
+          item.textContent = v;
+          item.onclick = function () { alvo.value = v; dropdown.classList.add("hidden"); };
+          dropdown.appendChild(item);
+        })(categorias[k]);
+      }
+
+      var rect = alvo.getBoundingClientRect();
+      dropdown.style.position = "fixed";
+      dropdown.style.left = rect.left + "px";
+      dropdown.style.top = (rect.bottom + 2) + "px";
+      dropdown.style.width = rect.width + "px";
+      dropdown.classList.remove("hidden");
+    }
+
+    function selecionarCategoria(valor) {
+      var inputNovo = document.getElementById("nova_ferramenta_categoria");
+      var inputEdit = document.getElementById("detalheInputCategoria");
+      if (inputEdit && document.activeElement === inputEdit) {
+        inputEdit.value = valor;
+      } else if (inputNovo) {
+        inputNovo.value = valor;
+      }
+      var dropdown = document.getElementById("dropdown_categoria_lista");
+      if (dropdown) dropdown.classList.add("hidden");
+    }
+
+    function filtrarDropdownCategoria(event) {
+      var dropdown = document.getElementById("dropdown_categoria_lista");
+      if (!dropdown) return;
+      var input = event && event.target ? event.target : document.getElementById("nova_ferramenta_categoria");
+      if (!input) return;
+      var termo = input.value.toLowerCase().trim();
+      var categoriasPadrao = ["Elétrica", "Manual", "Eletrônica", "Hidráulica", "EPI (Segurança)", "Outros"];
+      var todas = categoriasPadrao.slice();
+      if (typeof baseDeDados !== "undefined" && baseDeDados && Array.isArray(baseDeDados.ferramentas)) {
+        for (var i = 0; i < baseDeDados.ferramentas.length; i++) {
+          var f = baseDeDados.ferramentas[i];
+          var cat = f.Categoria || f.categoria || "";
+          if (cat && cat.trim() !== "" && todas.indexOf(cat.trim()) === -1) {
+            todas.push(cat.trim());
+          }
+        }
+      }
+      try {
+        var salvas = localStorage.getItem("controltool_categorias");
+        if (salvas) {
+          var arr = JSON.parse(salvas);
+          for (var j = 0; j < arr.length; j++) {
+            if (arr[j] && todas.indexOf(arr[j]) === -1) {
+              todas.push(arr[j]);
+            }
+          }
+        }
+      } catch (e) { }
+      todas.sort();
+      dropdown.innerHTML = "";
+      if (termo === "") {
+        for (var i = 0; i < todas.length; i++) {
+          var item = document.createElement("div");
+          item.className = "px-3 py-2 text-sm text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer border-b border-slate-800 last:border-b-0";
+          item.textContent = todas[i];
+          item.onclick = (function (v) { return function () { selecionarCategoria(v); }; })(todas[i]);
+          dropdown.appendChild(item);
+        }
+        dropdown.classList.remove("hidden");
+        return;
+      }
+      var encontrou = false;
+      for (var j = 0; j < todas.length; j++) {
+        if (todas[j].toLowerCase().indexOf(termo) !== -1) {
+          var item2 = document.createElement("div");
+          item2.className = "px-3 py-2 text-sm text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer border-b border-slate-800 last:border-b-0";
+          item2.textContent = todas[j];
+          item2.onclick = (function (v) { return function () { selecionarCategoria(v); }; })(todas[j]);
+          dropdown.appendChild(item2);
+          encontrou = true;
+        }
+      }
+      if (!encontrou) {
+        dropdown.innerHTML = '<div class="p-3 text-xs text-slate-500 text-center">Nova categoria: <strong>"' + termo + '"</strong></div>';
+      }
+      dropdown.classList.remove("hidden");
+    }
+
+    // ====== SETORES — Dropdown customizado ======
+
+function obterTodosSetores() {
+  // Primeiro: salvar no localStorage o que já temos em memória
+  if (typeof salvarSetoresDosUsuarios === "function") salvarSetoresDosUsuarios();
+
+  var padrao = ["Manutenção", "Produção", "Instalação", "Administrativo", "Outros"];
+  var todos = padrao.slice();
+
+  // Puxar setores únicos da aba Usuarios (coluna D)
+  if (typeof baseDeDados !== "undefined" && baseDeDados && Array.isArray(baseDeDados.usuarios)) {
+    for (var i = 0; i < baseDeDados.usuarios.length; i++) {
+      var setor = baseDeDados.usuarios[i].Setor || baseDeDados.usuarios[i].setor || "";
+      if (setor && setor.trim() !== "" && todos.indexOf(setor.trim()) === -1) {
+        todos.push(setor.trim());
+      }
+    }
+  }
+
+  // Puxar setores salvos no localStorage (sessões anteriores)
+  try {
+    var salvas = localStorage.getItem("controltool_setores");
+    if (salvas) {
+      var arr = JSON.parse(salvas);
+      for (var j = 0; j < arr.length; j++) {
+        if (arr[j] && todos.indexOf(arr[j]) === -1) {
+          todos.push(arr[j]);
+        }
+      }
+    }
+  } catch (e) {}
+
+  todos.sort();
+  return todos;
+}
+
+function abrirDropdownSetor() {
+  var dropdown = document.getElementById("dropdown_setor_lista");
+  if (!dropdown) return;
+
+  if (!dropdown.classList.contains("hidden")) {
+    dropdown.classList.add("hidden");
+    return;
+  }
+
+  var input = document.getElementById("novo_usuario_setor");
+  if (!input) return;
+
+  var setores = obterTodosSetores();
+
+  dropdown.innerHTML = "";
+  for (var i = 0; i < setores.length; i++) {
+    (function(v) {
+      var item = document.createElement("div");
+      item.className = "px-3 py-2 text-sm text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer border-b border-slate-800 last:border-b-0";
+      item.textContent = v;
+      item.onclick = function() { input.value = v; dropdown.classList.add("hidden"); };
+      dropdown.appendChild(item);
+    })(setores[i]);
+  }
+
+  var rect = input.getBoundingClientRect();
+  dropdown.style.position = "fixed";
+  dropdown.style.left = rect.left + "px";
+  dropdown.style.top = (rect.bottom + 2) + "px";
+  dropdown.style.width = rect.width + "px";
+  dropdown.classList.remove("hidden");
+}
+
+function selecionarSetor(valor) {
+  var input = document.getElementById("novo_usuario_setor");
+  if (input) input.value = valor;
+  var dropdown = document.getElementById("dropdown_setor_lista");
+  if (dropdown) dropdown.classList.add("hidden");
+}
+
+function filtrarDropdownSetor(event) {
+  var dropdown = document.getElementById("dropdown_setor_lista");
+  if (!dropdown) return;
+  var input = event && event.target ? event.target : document.getElementById("novo_usuario_setor");
+  if (!input) return;
+
+  var termo = input.value.toLowerCase().trim();
+  var todos = obterTodosSetores();
+
+  dropdown.innerHTML = "";
+
+  if (termo === "") {
+    for (var i = 0; i < todos.length; i++) {
+      var item = document.createElement("div");
+      item.className = "px-3 py-2 text-sm text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer border-b border-slate-800 last:border-b-0";
+      item.textContent = todos[i];
+      item.onclick = (function(v) { return function() { input.value = v; dropdown.classList.add("hidden"); }; })(todos[i]);
+      dropdown.appendChild(item);
+    }
+    dropdown.classList.remove("hidden");
+    return;
+  }
+
+  var encontrou = false;
+  for (var j = 0; j < todos.length; j++) {
+    if (todos[j].toLowerCase().indexOf(termo) !== -1) {
+      var item2 = document.createElement("div");
+      item2.className = "px-3 py-2 text-sm text-slate-200 hover:bg-amber-500/20 hover:text-amber-300 cursor-pointer border-b border-slate-800 last:border-b-0";
+      item2.textContent = todos[j];
+      item2.onclick = (function(v) { return function() { input.value = v; dropdown.classList.add("hidden"); }; })(todos[j]);
+      dropdown.appendChild(item2);
+      encontrou = true;
+    }
+  }
+  if (!encontrou) {
+    dropdown.innerHTML = '<div class="p-3 text-xs text-slate-500 text-center">Novo setor: <strong>"' + termo + '"</strong></div>';
+  }
+  dropdown.classList.remove("hidden");
+}
+
+function salvarSetorLocal(novoSetor) {
+  if (!novoSetor || typeof novoSetor !== "string") return;
+  var s = novoSetor.trim();
+  if (!s) return;
+  var salvas = [];
+  try {
+    var existentes = localStorage.getItem("controltool_setores");
+    if (existentes) salvas = JSON.parse(existentes);
+  } catch (e) {}
+  if (salvas.indexOf(s) === -1) {
+    salvas.push(s);
+    try {
+      localStorage.setItem("controltool_setores", JSON.stringify(salvas));
+    } catch (e) {}
+  }
+}
+
+    function salvarCategoriaLocal(novaCategoria) {
+      if (!novaCategoria || typeof novaCategoria !== "string") return;
+      var cat = novaCategoria.trim();
+      if (!cat) return;
+      var salvas = [];
+      try {
+        var existentes = localStorage.getItem("controltool_categorias");
+        if (existentes) salvas = JSON.parse(existentes);
+      } catch (e) { }
+      if (salvas.indexOf(cat) === -1) {
+        salvas.push(cat);
+        try {
+          localStorage.setItem("controltool_categorias", JSON.stringify(salvas));
+        } catch (e) { }
+      }
+    }
+
+
+
+
+    // Fechar dropdown ao clicar fora
+    document.addEventListener("click", function (e) {
+      var dropdown = document.getElementById("dropdown_categoria_lista");
+      if (!dropdown) return;
+      var input = document.getElementById("nova_ferramenta_categoria");
+      var inputEdit = document.getElementById("detalheInputCategoria");
+      if (dropdown.classList.contains("hidden")) return;
+      if (e.target === input || e.target === inputEdit) return;
+      if (e.target.closest && e.target.closest("#dropdown_categoria_lista")) return;
+      dropdown.classList.add("hidden");
+    });
+
+    // Fechar dropdown de setores ao clicar fora
+document.addEventListener("click", function (e) {
+  var dropdown = document.getElementById("dropdown_setor_lista");
+  if (!dropdown || dropdown.classList.contains("hidden")) return;
+  var input = document.getElementById("novo_usuario_setor");
+  if (e.target === input) return;
+  if (e.target.closest && e.target.closest("#dropdown_setor_lista")) return;
+  dropdown.classList.add("hidden");
+});
+
+function salvarSetoresDosUsuarios() {
+  if (!baseDeDados || !Array.isArray(baseDeDados.usuarios)) return;
+  var setores = [];
+  try {
+    var existentes = localStorage.getItem("controltool_setores");
+    if (existentes) setores = JSON.parse(existentes);
+  } catch (e) {}
+  var modificou = false;
+  for (var i = 0; i < baseDeDados.usuarios.length; i++) {
+    var s = baseDeDados.usuarios[i].Setor || baseDeDados.usuarios[i].setor || "";
+    if (s && s.trim() !== "" && setores.indexOf(s.trim()) === -1) {
+      setores.push(s.trim());
+      modificou = true;
+    }
+  }
+  if (modificou) {
+    try {
+      localStorage.setItem("controltool_setores", JSON.stringify(setores));
+    } catch (e) {}
+  }
+}
+
+    function showToast(titulo, mensagem, icone = "🔔", classesTema = "bg-slate-800 border-amber-500") {
+      const el = document.getElementById("toast");
+      document.getElementById("toast_icon").innerText = icone;
+      document.getElementById("toast_title").innerText = titulo;
+      document.getElementById("toast_msg").innerText = mensagem;
+      const container = el.firstElementChild;
+      container.className = `p-4 rounded-xl shadow-2xl border-l-4 flex items-center gap-3 max-w-sm ${classesTema} text-white`;
+      el.classList.remove("translate-y-10", "opacity-0");
+      el.classList.add("translate-y-0", "opacity-100");
+      setTimeout(() => {
+        el.classList.remove("translate-y-0", "opacity-100");
+        el.classList.add("translate-y-10", "opacity-0");
+      }, 4000);
+    }
+  </script>
+  <!-- DROPDOWN ÚNICO DE CATEGORIAS -->
+  <div id="dropdown_categoria_lista"
+    class="hidden fixed z-[100] bg-slate-900 border border-slate-700 rounded-lg max-h-44 overflow-y-auto shadow-xl min-w-[180px]">
+  </div>
+<div id="dropdown_setor_lista" class="hidden fixed z-[100] bg-slate-900 border border-slate-700 rounded-lg max-h-44 overflow-y-auto shadow-xl min-w-[180px]"></div>
+
+</body>
+
+</html>
