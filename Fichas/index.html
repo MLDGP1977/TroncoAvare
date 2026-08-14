@@ -59,12 +59,24 @@
             </div>
         </div>
         <div class="bg-slate-800 rounded-2xl border border-slate-700 overflow-hidden shadow-2xl">
-            <div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
-                <h3 class="font-bold flex items-center gap-2 text-slate-200">
-                    <i data-lucide="package" class="text-blue-400"></i> LISTA DE MATERIAIS
-                </h3>
-                <div id="status" class="text-sm font-medium text-blue-400">Aguardando importação...</div>
-            </div>
+<div class="p-6 border-b border-slate-700 flex justify-between items-center bg-slate-800/50">
+    <h3 class="font-bold flex items-center gap-2 text-slate-200">
+        <i data-lucide="package" class="text-blue-400"></i>
+        LISTA DE MATERIAIS
+    </h3>
+    <div class="flex items-center gap-4">
+        <div id="status" class="text-sm font-medium text-blue-400">
+            Aguardando importação...
+        </div>
+        <button
+            onclick="abrirModalItem()"
+            class="bg-emerald-600 hover:bg-emerald-500 text-white px-4 py-2 rounded-lg font-semibold transition-all flex items-center gap-2 shadow-lg"
+        >
+            <i data-lucide="plus" class="w-4 h-4"></i>
+            ADICIONAR ITEM
+        </button>
+    </div>
+</div>
             <div class="overflow-x-auto">
                 <table class="w-full text-left border-collapse">
                     <thead>
@@ -151,6 +163,112 @@
             </button>
         </div>
     </main>
+
+    <!-- MODAL - ADICIONAR ITEM AVULSO -->
+<div id="modalItem"
+     class="hidden fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+    <div class="bg-slate-800 border border-slate-600 rounded-2xl shadow-2xl w-full max-w-lg">
+        <!-- Cabeçalho -->
+        <div class="flex justify-between items-center p-6 border-b border-slate-700">
+            <div>
+                <h2 class="text-xl font-bold text-white">
+                    ADICIONAR ITEM AVULSO
+                </h2>
+                <p class="text-sm text-slate-400 mt-1">
+                    Informe os dados do material
+                </p>
+            </div>
+            <button
+                type="button"
+                onclick="fecharModalItem()"
+                class="text-slate-400 hover:text-white text-2xl leading-none"
+            >
+                ×
+            </button>
+        </div>
+        <!-- Formulário -->
+        <div class="p-6 space-y-5">
+            <!-- Código -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-300 mb-2">
+                    Código
+                </label>
+                <input
+                    id="itemCodigo"
+                    type="text"
+                    placeholder="Ex.: 23634"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500"
+                >
+            </div>
+            <!-- Descrição -->
+            <div>
+                <label class="block text-sm font-semibold text-slate-300 mb-2">
+                    Descrição
+                </label>
+                <input
+                    id="itemDescricao"
+                    type="text"
+                    placeholder="Descrição do material"
+                    class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500"
+                >
+            </div>
+            <!-- Unidade / Quantidade / Medida -->
+            <div class="grid grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">
+                        UN
+                    </label>
+                    <input
+                        id="itemUn"
+                        type="text"
+                        placeholder="JG"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white uppercase focus:outline-none focus:border-emerald-500"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">
+                        QTD
+                    </label>
+                    <input
+                        id="itemQtd"
+                        type="text"
+                        placeholder="6,00"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500"
+                    >
+                </div>
+                <div>
+                    <label class="block text-sm font-semibold text-slate-300 mb-2">
+                        M³ / MED
+                    </label>
+                    <input
+                        id="itemMed"
+                        type="text"
+                        placeholder="0"
+                        class="w-full bg-slate-900 border border-slate-600 rounded-lg px-4 py-3 text-white focus:outline-none focus:border-emerald-500"
+                    >
+                </div>
+            </div>
+        </div>
+        <!-- Rodapé -->
+        <div class="flex justify-end gap-3 p-6 border-t border-slate-700">
+            <button
+                type="button"
+                onclick="fecharModalItem()"
+                class="px-5 py-2.5 bg-slate-600 hover:bg-slate-500 text-white rounded-lg font-semibold transition-all"
+            >
+                CANCELAR
+            </button>
+            <button
+                type="button"
+                onclick="adicionarItemAvulso()"
+                class="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold transition-all flex items-center gap-2"
+            >
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                ADICIONAR
+            </button>
+        </div>
+    </div>
+</div>
     <script>
         const pdfjs = window['pdfjs-dist/build/pdf'];
         pdfjs.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
@@ -744,6 +862,50 @@ function toggleAll(area, value) {
             printWindow.document.close();
             setTimeout(() => printWindow.print(), 500);
         }
+
+        //Modal
+        function abrirModalItem() {
+    document.getElementById("modalItem").classList.remove("hidden");
+    document.getElementById("itemCodigo").focus();
+}
+
+function fecharModalItem() {
+    document.getElementById("modalItem").classList.add("hidden");
+}
+
+function adicionarItemAvulso() {
+    const cod = document.getElementById("itemCodigo").value.trim();
+    const desc = document.getElementById("itemDescricao").value.trim();
+    const un = document.getElementById("itemUn").value.trim().toUpperCase();
+    const qtd = document.getElementById("itemQtd").value.trim();
+    const med = document.getElementById("itemMed").value.trim();
+    // Validação
+    if (!cod || !desc || !un || !qtd) {
+        alert("Preencha pelo menos Código, Descrição, UN e QTD.");
+        return;
+    }
+    // Adiciona o item na lista principal
+    ITEMS.push({
+        cod: cod,
+        desc: desc,
+        un: un,
+        qtd: qtd,
+        med: med
+    });
+    // Cria o estado dos checkboxes para o novo item
+    state.push(new Set());
+    // Atualiza a tabela
+    updateUI();
+    // Fecha o modal
+    fecharModalItem();
+    // Limpa os campos
+    document.getElementById("itemCodigo").value = "";
+    document.getElementById("itemDescricao").value = "";
+    document.getElementById("itemUn").value = "";
+    document.getElementById("itemQtd").value = "";
+    document.getElementById("itemMed").value = "";
+}
+
     </script>
 </body>
 </html>
