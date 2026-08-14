@@ -237,14 +237,14 @@ function processText(text) {
     }
 
     // ── WORD: CSV ──
-    const csvRegex = /"(\d{4,})\s*"\s*,\s*"([\s\S]*?)"\s*,\s*"(UN|ML|M2|PC|KG)\s*"\s*,\s*"(\d+,\d+|\d+)\s*"\s*,\s*"(\d+,\d+|\d+)\s*"/gi;
+    const csvRegex = /"(\d{4,})\s*"\s*,\s*"([\s\S]*?)"\s*,\s*"(UN|ML|M2|PC|KG|JG)\s*"\s*,\s*"(\d+,\d+|\d+)\s*"\s*,\s*"(\d+,\d+|\d+)\s*"/gi;
     let match;
     while ((match = csvRegex.exec(text)) !== null) {
         addItem(match[1].trim(), match[2].trim(), match[3].toUpperCase(), match[4], match[5]);
     }
 
     // ── WORD: código 5 dígitos em linhas separadas ──
-    const wordItemRegex = /(\d{5})\s*\n\s*([\s\S]+?)\n\s*(UN|ML|M2|PC|KG)\s+(\d+,\d+|\d+)\s+(\d+,\d+|\d+)/gi;
+    const wordItemRegex = /(\d{5})\s*\n\s*([\s\S]+?)\n\s*(UN|ML|M2|PC|KG|JG)\s+(\d+,\d+|\d+)\s+(\d+,\d+|\d+)/gi;
     while ((match = wordItemRegex.exec(text)) !== null) {
         addItem(match[1].trim(), match[2], match[3].toUpperCase(), match[4], match[5]);
     }
@@ -253,7 +253,7 @@ function processText(text) {
     if (ITEMS.length === 0) {
         const tableStart = text.search(/Código\s+Descrição\s+Qtd\s+Un/i);
         const tableText = tableStart !== -1 ? text.substring(tableStart) : text;
-        const itemRegex = /(\d{5})\s+(\d+,\d+|\d+)\s+(\d+,\d+|\d+)\s{2,}(UN|ML|M2|PC|KG)/gi;
+        const itemRegex = /(\d{5})\s+(\d+,\d+|\d+)\s+(\d+,\d+|\d+)\s{2,}(UN|ML|M2|PC|KG|JG)/gi;
         let matchItem;
         let prevEnd = 0;
         while ((matchItem = itemRegex.exec(tableText)) !== null) {
@@ -298,7 +298,7 @@ function processText(text) {
                 .replace(/Data da Emissão:[^<]*/gi, "")
                 .replace(/<br>\s*\d{4,}\s*<br>/g, "<br>")
                 .replace(/<br>.*?(CEDRINHO|MADEIRA|BEIRAL|PORTA|JANELA).*?<br>/gi, "<br>")
-                .replace(/<br>\s*(UN|ML|M2|PC|KG)\s+\d+,\d+\s+\d+,\d+.*?<br>/gi, "<br>")
+                .replace(/<br>\s*(UN|ML|M2|PC|KG|JG)\s+\d+,\d+\s+\d+,\d+.*?<br>/gi, "<br>")
                 .replace(/FF\s*-\s*\//gi, "")
                 .replace(
                     /(DETALHES\s*DA\s*VENDA[.:\s]*)([\s\S]*?)(SEPARADO\s*POR[.:\s]*)/i,
@@ -421,7 +421,7 @@ function extrairItens(tabela) {
     tabela.forEach(linha => {
         linha = linha.replace(/\s+/g, " ").trim();
         const m = linha.match(
-            /^(\d{5})\s+(.+?)\s+(UN|ML|M2|PC|KG)\s+([\d,]+)\s+([\d,]+)(\s+.*)?$/i
+            /^(\d{5})\s+(.+?)\s+(UN|ML|M2|PC|KG|JG)\s+([\d,]+)\s+([\d,]+)(\s+.*)?$/i
         );
         if (!m) return;
         let desc = m[2].trim();
