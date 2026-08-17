@@ -587,9 +587,15 @@ function extrairCabecalho(linhas) {
      // VENDEDOR:
     let vMatch = texto.match(/VENDEDOR[.:\s]+(.+?)(?:\s{3,}|CLIENTE|$)/i);
     if (vMatch) DOC.vendedor = vMatch[1].trim();
-    // CLIENTE: 
-    const clienteMatch = texto.match(/([\d\.\/\-]+)\s*-\s*([A-ZÀ-Ú\s]+?)(?:\s*\(\d|\s*Entrega|\s*Código|$)/i);
-    if (clienteMatch) DOC.cliente = `${clienteMatch[1].trim()} - ${clienteMatch[2].trim()}`;
+// CLIENTE
+const clienteMatch = texto.match(
+    /CLIENTE\s+([\d./-]+)\s*-\s*(.+?)(?=\s*\(\d{2}\)\s?\d{4,5}-\d{4}|$)/i
+);
+if (clienteMatch) {
+    DOC.cliente = `${clienteMatch[1].trim()} - ${clienteMatch[2].trim()}`;
+} else {
+    DOC.cliente = 'Não Identificado';
+}
     // Telefone 
     const telMatch = texto.match(/(\(\d{2}\)\s?\d{4,5}-\d{4})/);
     if (telMatch) DOC.contato = telMatch[0];
