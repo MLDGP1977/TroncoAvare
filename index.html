@@ -2247,7 +2247,7 @@
           var mes = String(hoje.getMonth() + 1).padStart(2, "0");
           var ano = hoje.getFullYear();
           var dataHojeStr = dia + "/" + mes + "/" + ano;
-          var dataPrevistaInput = document.getElementById("data_prevista");
+          var dataPrevistaInput = document.getElementById("data_prevista_devolucao");
           var dataPrevista = dataPrevistaInput ? dataPrevistaInput.value.trim() : "";
           if (!dataPrevista) {
             var dataCalc = new Date(hoje);
