@@ -573,36 +573,85 @@ function extrairItens(tabela) {
 }
 
 function extrairCabecalho(linhas) {
-    const texto = linhas.join(' ');
-    // DOC :
-    const docMatch = texto.match(/DOC\s*:\s*([A-Z0-9]+)/i);
-    if (docMatch) DOC.numDoc = docMatch[1].trim();
-     // Data da Emissão:
-    const emissaoMatch = texto.match(/Emissão:\s*(\d{2}\/\d{2}\/\d{4})/i);
-    if (emissaoMatch) DOC.emissao = emissaoMatch[1];
-     // Data de entrega
+
+    if (!linhas || linhas.length === 0) return;
+
+    const texto = linhas
+        .map(l => l.replace(/\s+/g, ' ').trim())
+        .filter(Boolean)
+        .join(' ');
+
+    const docMatch = texto.match(/DOC\s*[:.]?\s*([A-Z0-9]+)/i);
+
+    DOC.numDoc = docMatch
+        ? docMatch[1].trim()
+        : '---';
+
+    const emissaoMatch = texto.match(
+        /Emissão\s*[:.]?\s*(\d{2}\/\d{2}\/\d{4})/i
+    );
+
+    DOC.emissao = emissaoMatch
+        ? emissaoMatch[1]
+        : '---';
+
     const allDates = texto.match(/\d{2}\/\d{2}\/\d{4}/g) || [];
-    const realDates = allDates.filter(d => d !== '31/12/9999' && d !== DOC.emissao);
-    if (realDates.length > 0) DOC.entrega = realDates[realDates.length - 1];
-     // VENDEDOR:
-    let vMatch = texto.match(/VENDEDOR[.:\s]+(.+?)(?:\s{3,}|CLIENTE|$)/i);
-    if (vMatch) DOC.vendedor = vMatch[1].trim();
-// CLIENTE
-const clienteMatch = texto.match(
-    /CLIENTE\s+([\d./-]+)\s*-\s*(.+?)(?=\s*\(\d{2}\)\s?\d{4,5}-\d{4}|$)/i
-);
-if (clienteMatch) {
-    DOC.cliente = `${clienteMatch[1].trim()} - ${clienteMatch[2].trim()}`;
-} else {
-    DOC.cliente = 'Não Identificado';
-}
-    // Telefone 
-    const telMatch = texto.match(/(\(\d{2}\)\s?\d{4,5}-\d{4})/);
-    if (telMatch) DOC.contato = telMatch[0];
-        // Endereço
-    const endMatch = texto.match(/Entrega[.:]\s*(.+?)(?:\s*Código\s|$)/i);
+
+    const realDates = allDates.filter(
+        d => d !== '31/12/9999' && d !== DOC.emissao
+    );
+
+    DOC.entrega = realDates.length > 0
+        ? realDates[realDates.length - 1]
+        : '---';
+
+    const vendedorMatch = texto.match(
+        /VENDEDOR\s*[:.]?\s*(.*?)(?=\s+CLIENTE\b|\s+Emissão\b|\s+Entrega\b|$)/i
+    );
+
+    DOC.vendedor = vendedorMatch
+        ? vendedorMatch[1].trim()
+        : '---';
+
+    const clienteMatch = texto.match(
+        /CLIENTE\s*[:.]?\s*(.*?)(?=\s+Entrega\s*:|\s+Código\b|$)/i
+    );
+
+    if (clienteMatch) {
+
+        DOC.cliente = clienteMatch[1]
+            .replace(/\s+/g, ' ')
+            .trim();
+
+DOC.cliente = DOC.cliente
+    .replace(/\s*\(\d{2}\)\s*\d{3,5}-\d{3,5}\s*/gi, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+    } else {
+
+        DOC.cliente = 'Não Identificado';
+    }
+    const telMatch = texto.match(
+        /\(\d{2}\)\s*\d{3,5}-\d{3,5}/
+    );
+
+    DOC.contato = telMatch
+        ? telMatch[0].trim()
+        : '';
+    const endMatch = texto.match(
+        /Entrega\s*:\s*(.*?)(?=\s+Código\b|$)/i
+    );
+
     if (endMatch) {
-        DOC.enderecoCompleto = endMatch[1].trim();
+
+        DOC.enderecoCompleto = endMatch[1]
+            .replace(/\s+/g, ' ')
+            .trim();
+
+    } else {
+
+        DOC.enderecoCompleto = '';
     }
 }
 
