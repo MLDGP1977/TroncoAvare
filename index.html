@@ -292,16 +292,26 @@
               <span onclick="abrirDropdownCategoria()"
                 class="absolute right-2 top-[38px] text-slate-400 cursor-pointer text-xs">▼</span>
             </div>
-            <div class="flex gap-2 pt-2">
-              <button onclick="salvarAlteracoesFerramenta()"
-                class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 transition-colors">
-                💾 Salvar
-              </button>
-              <button onclick="fecharDetalheFerramenta()"
-                class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-600 transition-colors">
-                Cancelar
-              </button>
-            </div>
+<div class="flex justify-between gap-2 pt-2 w-full">
+
+  <button onclick="excluirFerramentaAtual()"
+    class="inline-flex items-center gap-2 rounded-lg bg-red-600/20 border border-red-500/40 px-4 py-2 text-sm font-semibold text-red-400 shadow hover:bg-red-600/40 transition-colors">
+    🗑️ Excluir
+  </button>
+
+  <div class="flex gap-2">
+    <button onclick="fecharDetalheFerramenta()"
+      class="inline-flex items-center gap-2 rounded-lg bg-slate-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-slate-600 transition-colors">
+      Cancelar
+    </button>
+
+    <button onclick="salvarAlteracoesFerramenta()"
+      class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-indigo-500 transition-colors">
+      💾 Salvar
+    </button>
+  </div>
+
+</div>
           </div>
           <!-- LADO DIREITO: Prévia da etiqueta -->
           <div class="flex flex-col items-center gap-3">
@@ -1347,35 +1357,100 @@
     }
     function renderizarListaFerramentas() {
       const cont = document.getElementById('listaFerramentas');
+      if (!cont) return;
       cont.innerHTML = '';
-      const lista = (typeof baseDeDados !== 'undefined' && Array.isArray(baseDeDados.ferramentas)) ? baseDeDados.ferramentas : [];
+
+      const lista = (typeof baseDeDados !== 'undefined' && Array.isArray(baseDeDados.ferramentas))
+        ? baseDeDados.ferramentas
+        : [];
+
       if (lista.length === 0) {
         cont.innerHTML = '<p class="text-slate-400 text-sm text-center py-6">Nenhuma ferramenta cadastrada.</p>';
         return;
       }
+
       lista.forEach((f, i) => {
-        const id = getFerramentaId(f);
-        const nome = getFerramentaNome(f);
-        const cat = getFerramentaCategoria(f);
+        const id = getFerramentaId(f) || '';
+        const nome = getFerramentaNome(f) || 'Sem nome';
+        const cat = getFerramentaCategoria(f) || '—';
         const status = f.Status || f.status || f.Estado || "Disponivel";
-        const item = document.createElement('button');
-        item.type = 'button';
-        item.className = 'w-full text-left rounded-lg border border-slate-700 bg-slate-800 px-4 py-3 hover:bg-slate-700 transition-colors';
+
+        // Item da lista. Agora usamos DIV em vez de BUTTON para
+        // permitir os botões independentes de Editar e Excluir.
+        const item = document.createElement('div');
+        item.className = 'w-full rounded-xl border border-slate-700 bg-slate-800 px-4 py-3 hover:bg-slate-750 transition-colors';
+
+        const statusNormalizado = String(status).toLowerCase();
+        let statusClasses = 'text-slate-400 bg-slate-500/10 border-slate-500/20';
+        if (statusNormalizado.includes('dispon')) {
+          statusClasses = 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20';
+        } else if (statusNormalizado.includes('emprest') || statusNormalizado.includes('campo')) {
+          statusClasses = 'text-sky-400 bg-sky-500/10 border-sky-500/20';
+        } else if (statusNormalizado.includes('atras')) {
+          statusClasses = 'text-red-400 bg-red-500/10 border-red-500/20';
+        }
+
         item.innerHTML = `
-      <div class="flex items-center justify-between gap-3">
-        <div class="min-w-0 flex-1">
-          <p class="text-sm font-semibold text-white truncate">${nome}</p>
-          <p class="text-xs text-slate-400 truncate mt-0.5">#${id}</p>
-        </div>
-        <div class="shrink-0 text-right">
-          <span class="inline-block text-xs font-medium text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full">${cat}</span>
-          <p class="text-xs text-slate-500 mt-0.5">${status}</p>
-        </div>
-      </div>`;
-        item.onclick = () => abrirDetalheFerramenta(i);
+          <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div class="min-w-0 flex-1 cursor-pointer" title="Abrir detalhes da ferramenta">
+              <p class="text-sm font-semibold text-white truncate">${nome}</p>
+              <p class="text-xs text-slate-400 truncate mt-0.5">#${id}</p>
+              <div class="flex flex-wrap items-center gap-2 mt-2">
+                <span class="inline-block text-xs font-medium text-amber-400 bg-amber-500/10 border border-amber-500/10 px-2 py-0.5 rounded-full">${cat}</span>
+                <span class="inline-block text-xs font-medium px-2 py-0.5 rounded-full border ${statusClasses}">${status}</span>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 shrink-0">
+              <button type="button"
+                data-acao="editar"
+                class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 active:scale-95 px-3 py-2 text-xs font-bold text-white shadow transition-all"
+                title="Editar ferramenta">
+                ✏️ Editar
+              </button>
+
+              <button type="button"
+                data-acao="excluir"
+                class="inline-flex items-center justify-center gap-1.5 rounded-lg bg-red-600/20 hover:bg-red-600/40 border border-red-500/40 active:scale-95 px-3 py-2 text-xs font-bold text-red-400 shadow transition-all"
+                title="Excluir ferramenta">
+                🗑️ Excluir
+              </button>
+            </div>
+          </div>`;
+
+        // Clicar no nome/dados abre a tela de detalhes/edição.
+        const areaDetalhes = item.querySelector('.min-w-0');
+        if (areaDetalhes) {
+          areaDetalhes.addEventListener('click', function () {
+            abrirDetalheFerramenta(i);
+          });
+        }
+
+        // Botão EDITAR
+        const btnEditar = item.querySelector('[data-acao="editar"]');
+        if (btnEditar) {
+          btnEditar.addEventListener('click', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            abrirDetalheFerramenta(i);
+          });
+        }
+
+        // Botão EXCLUIR
+        const btnExcluir = item.querySelector('[data-acao="excluir"]');
+        if (btnExcluir) {
+          btnExcluir.addEventListener('click', async function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            await excluirFerramentaPorIndice(i);
+          });
+        }
+
         cont.appendChild(item);
       });
     }
+
+ 
 
     function abrirDetalheFerramenta(index) {
       const ferramenta = baseDeDados && baseDeDados.ferramentas ? baseDeDados.ferramentas[index] : null;
@@ -1389,6 +1464,339 @@
       }
     }
 
+
+async function excluirFerramentaAtual() {
+  if (
+    detalheFerramentaIndex === null ||
+    detalheFerramentaIndex === undefined
+  ) {
+    showToast(
+      "Atenção",
+      "Nenhuma ferramenta selecionada.",
+      "⚠️",
+      "bg-amber-600/30 border-amber-500"
+    );
+    return;
+  }
+
+  const ferramenta =
+    baseDeDados &&
+    Array.isArray(baseDeDados.ferramentas)
+      ? baseDeDados.ferramentas[detalheFerramentaIndex]
+      : null;
+
+  if (!ferramenta) {
+    showToast(
+      "Erro",
+      "Ferramenta não encontrada.",
+      "❌",
+      "bg-red-600/30 border-red-500"
+    );
+    return;
+  }
+
+ 
+  const id = String(
+    ferramenta.ID ??
+    ferramenta.id ??
+    ferramenta.ID_Ferramenta ??
+    ferramenta.codigo ??
+    ""
+  ).trim();
+
+  const nome = String(
+    ferramenta.Descrição ??
+    ferramenta.Descricao ??
+    ferramenta.descricao ??
+    ferramenta.Nome ??
+    ferramenta.nome ??
+    "Sem nome"
+  ).trim();
+
+  if (!id) {
+    console.error("Ferramenta sem ID:", ferramenta);
+
+    showToast(
+      "Erro",
+      "A ferramenta não possui um ID válido.",
+      "❌",
+      "bg-red-600/30 border-red-500"
+    );
+    return;
+  }
+
+  // Confirmação
+  const confirmar = window.confirm(
+    `Deseja realmente excluir a ferramenta?\n\n` +
+    `ID: ${id}\n` +
+    `Nome: ${nome}\n\n` +
+    `Esta ação não poderá ser desfeita.`
+  );
+
+  if (!confirmar) return;
+
+  try {
+    showToast(
+      "Excluindo",
+      `Excluindo a ferramenta ${id}...`,
+      "⏳",
+      "bg-slate-700 border-slate-500"
+    );
+
+    const resposta = await fetch(API_URL, {
+      method: "POST",
+      redirect: "follow",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        acao: "excluirFerramenta",
+        id: id
+      })
+    });
+
+    const texto = await resposta.text();
+
+    console.log("Resposta exclusão:", texto);
+
+    let dados = null;
+
+    try {
+      dados = JSON.parse(texto);
+    } catch (erro) {
+      const inicio = texto.indexOf("{");
+      const fim = texto.lastIndexOf("}");
+
+      if (inicio !== -1 && fim !== -1 && fim > inicio) {
+        try {
+          dados = JSON.parse(
+            texto.substring(inicio, fim + 1)
+          );
+        } catch (erroJson) {
+          console.error(
+            "Erro ao interpretar JSON:",
+            erroJson
+          );
+        }
+      }
+    }
+
+
+    if (!dados || dados.status !== "sucesso") {
+      console.error(
+        "Servidor não confirmou exclusão:",
+        dados
+      );
+
+      showToast(
+        "Não foi possível excluir",
+        dados && dados.mensagem
+          ? dados.mensagem
+          : "O servidor não confirmou a exclusão.",
+        "❌",
+        "bg-red-600/30 border-red-500"
+      );
+
+      return;
+    }
+
+    // Remove da memória local
+    baseDeDados.ferramentas.splice(
+      detalheFerramentaIndex,
+      1
+    );
+
+    fecharDetalheFerramenta();
+    renderizarListaFerramentas();
+    if (typeof renderizarDashboard === "function") {
+      renderizarDashboard();
+    }
+
+    showToast(
+      "Excluído",
+      `A ferramenta "${nome}" foi excluída com sucesso.`,
+      "✅",
+      "bg-emerald-600/30 border-emerald-500"
+    );
+
+  } catch (erro) {
+    console.error(
+      "Erro ao excluir ferramenta:",
+      erro
+    );
+
+    showToast(
+      "Erro",
+      "Falha de conexão ao tentar excluir a ferramenta: " +
+        erro.message,
+      "❌",
+      "bg-red-600/30 border-red-500"
+    );
+  }
+}
+
+
+async function excluirFerramentaPorIndice(index) {
+  if (
+    index === null ||
+    index === undefined ||
+    !baseDeDados ||
+    !Array.isArray(baseDeDados.ferramentas)
+  ) {
+    showToast(
+      "Erro",
+      "Ferramenta não encontrada.",
+      "❌",
+      "bg-red-600/30 border-red-500"
+    );
+    return;
+  }
+
+  const ferramenta = baseDeDados.ferramentas[index];
+
+  if (!ferramenta) {
+    showToast(
+      "Erro",
+      "Ferramenta não encontrada.",
+      "❌",
+      "bg-red-600/30 border-red-500"
+    );
+    return;
+  }
+
+  const id = String(
+    ferramenta.ID ??
+    ferramenta.id ??
+    ferramenta.ID_Ferramenta ??
+    ferramenta.codigo ??
+    ""
+  ).trim();
+
+  const nome = String(
+    ferramenta.Descrição ??
+    ferramenta.Descricao ??
+    ferramenta.descricao ??
+    ferramenta.Nome ??
+    ferramenta.nome ??
+    "Sem nome"
+  ).trim();
+
+  if (!id) {
+    showToast(
+      "Erro",
+      "A ferramenta não possui um ID válido.",
+      "❌",
+      "bg-red-600/30 border-red-500"
+    );
+    return;
+  }
+
+  const confirmar = window.confirm(
+    `Deseja realmente excluir a ferramenta?\n\n` +
+    `ID: ${id}\n` +
+    `Nome: ${nome}\n\n` +
+    `Esta ação não poderá ser desfeita.`
+  );
+
+  if (!confirmar) return;
+
+  try {
+    showToast(
+      "Excluindo",
+      `Excluindo a ferramenta ${id}...`,
+      "⏳",
+      "bg-slate-700 border-slate-500"
+    );
+
+    const resposta = await fetch(API_URL, {
+      method: "POST",
+      redirect: "follow",
+      headers: {
+        "Content-Type": "text/plain;charset=utf-8"
+      },
+      body: JSON.stringify({
+        acao: "excluirFerramenta",
+        id: id
+      })
+    });
+
+    const texto = await resposta.text();
+
+    console.log("Resposta exclusão:", texto);
+
+    let dados = null;
+
+    try {
+      dados = JSON.parse(texto);
+    } catch (erro) {
+      const inicio = texto.indexOf("{");
+      const fim = texto.lastIndexOf("}");
+
+      if (inicio !== -1 && fim !== -1 && fim > inicio) {
+        try {
+          dados = JSON.parse(
+            texto.substring(inicio, fim + 1)
+          );
+        } catch (erroJson) {
+          console.error(
+            "Erro ao interpretar JSON:",
+            erroJson
+          );
+        }
+      }
+    }
+
+    if (!dados || dados.status !== "sucesso") {
+      console.error(
+        "Servidor não confirmou exclusão:",
+        dados
+      );
+
+      showToast(
+        "Não foi possível excluir",
+        dados && dados.mensagem
+          ? dados.mensagem
+          : "O servidor não confirmou a exclusão.",
+        "❌",
+        "bg-red-600/30 border-red-500"
+      );
+
+      return;
+    }
+
+    // Exclusão local somente depois do sucesso no servidor
+    baseDeDados.ferramentas.splice(index, 1);
+
+    renderizarListaFerramentas();
+
+    if (typeof renderizarDashboard === "function") {
+      renderizarDashboard();
+    }
+
+    showToast(
+      "Excluído",
+      `A ferramenta "${nome}" foi excluída com sucesso.`,
+      "✅",
+      "bg-emerald-600/30 border-emerald-500"
+    );
+
+  } catch (erro) {
+    console.error(
+      "Erro ao excluir ferramenta:",
+      erro
+    );
+
+    showToast(
+      "Erro",
+      "Falha de conexão ao tentar excluir a ferramenta: " +
+        erro.message,
+      "❌",
+      "bg-red-600/30 border-red-500"
+    );
+  }
+}
+
+    
     function fecharDetalheFerramenta() {
       const m = document.getElementById('modalDetalheFerramenta');
       m.classList.add('hidden');
@@ -1419,66 +1827,156 @@
       if (pNome) pNome.textContent = nome || 'Nova Ferramenta';
     }
 
-    async function salvarAlteracoesFerramenta() {
-      try {
-        const inpId = document.getElementById('detalheInputId');
-        const inpNome = document.getElementById('detalheInputNome');
-        const inpCat = document.getElementById('detalheInputCategoria');
-        const imgQr = document.getElementById('detalheQrCodeImg');
-        if (!inpId || !inpNome || !inpCat) {
-          showToast('Erro', 'Campos do formulário não encontrados.', 'error', '');
-          return;
-        }
-        const id = inpId.value;
-        const nome = inpNome.value.trim();
-        const categoria = inpCat.value.trim();
-        const qrCode = imgQr ? imgQr.src : '';
-        if (!id || !nome) {
-          showToast('Atenção', 'Preencha os campos obrigatórios.', 'warning', '');
-          return;
-        }
-        const payload = {
-          acao: 'editarFerramenta',
-          id: id,
-          nome: nome,
-          descricao: categoria,
-          status: 'Disponivel',
-          qrCode: qrCode
-        };
-        const resposta = await fetch(API_URL, {
-          method: 'POST',
-          redirect: 'follow',
-          headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-          body: JSON.stringify(payload)
-        });
-        const texto = await resposta.text();
-        let dados;
-        try {
-          dados = JSON.parse(texto);
-        } catch (e) {
-          const match = texto.match(/\{[\s\S]*\}/);
-          dados = match ? JSON.parse(match[0]) : { status: 'erro', mensagem: 'Resposta inválida do servidor.' };
-        }
-        if (dados.status === 'sucesso') {
-          if (detalheFerramentaIndex >= 0 && baseDeDados.ferramentas[detalheFerramentaIndex]) {
-            var f = baseDeDados.ferramentas[detalheFerramentaIndex];
-            f.Descrição = nome;
-            f.Categoria = categoria;
-            f.Status = 'Disponivel';
-            f.QrCode = qrCode;
-            f.qrCode = qrCode;
-          }
-          if (typeof renderizarListaFerramentas === 'function') renderizarListaFerramentas();
-          if (typeof renderizarDashboard === 'function') renderizarDashboard();
-          showToast('Sucesso', 'Ferramenta atualizada com sucesso.', 'success', '');
-          if (typeof fecharDetalheFerramenta === 'function') fecharDetalheFerramenta();
-        } else {
-          showToast('Erro', dados.mensagem || 'Falha ao atualizar ferramenta.', 'error', '');
-        }
-      } catch (erro) {
-        showToast('Erro', String(erro), 'error', '');
-      }
+   async function salvarAlteracoesFerramenta() {
+  try {
+    const inpId = document.getElementById('detalheInputId');
+    const inpNome = document.getElementById('detalheInputNome');
+    const inpCat = document.getElementById('detalheInputCategoria');
+    const imgQr = document.getElementById('detalheQrCodeImg');
+
+    if (!inpId || !inpNome || !inpCat) {
+      showToast(
+        'Erro',
+        'Campos do formulário não encontrados.',
+        '❌',
+        'bg-red-600/30 border-red-500'
+      );
+      return;
     }
+
+    // ID é somente leitura
+    const id = inpId.value.trim();
+    const nome = inpNome.value.trim();
+    const categoria = inpCat.value.trim();
+
+    if (!id || !nome) {
+      showToast(
+        'Atenção',
+        'Preencha os campos obrigatórios.',
+        '⚠️',
+        'bg-amber-600/30 border-amber-500'
+      );
+      return;
+    }
+
+    const ferramentaAtual =
+      baseDeDados.ferramentas[detalheFerramentaIndex];
+
+    if (!ferramentaAtual) {
+      showToast(
+        'Erro',
+        'Ferramenta não encontrada.',
+        '❌',
+        'bg-red-600/30 border-red-500'
+      );
+      return;
+    }
+
+    // PRESERVA O STATUS ATUAL
+    const statusAtual =
+      ferramentaAtual.Status ||
+      ferramentaAtual.status ||
+      ferramentaAtual.Estado ||
+      'Disponivel';
+
+    const qrCode =
+      imgQr && imgQr.src
+        ? imgQr.src
+        : getFerramentaQrCode(ferramentaAtual);
+
+    const payload = {
+      acao: 'editarFerramenta',
+      id: id,
+      nome: nome,
+      categoria: categoria,
+      status: statusAtual,
+      qrCode: qrCode
+    };
+
+    showToast(
+      'Salvando',
+      'Atualizando ferramenta...',
+      '⏳',
+      'bg-slate-700 border-slate-500'
+    );
+
+    const resposta = await fetch(API_URL, {
+      method: 'POST',
+      redirect: 'follow',
+      headers: {
+        'Content-Type': 'text/plain;charset=utf-8'
+      },
+      body: JSON.stringify(payload)
+    });
+
+    const texto = await resposta.text();
+
+    let dados;
+
+    try {
+      dados = JSON.parse(texto);
+    } catch (e) {
+      const match = texto.match(/\{[\s\S]*\}/);
+
+      dados = match
+        ? JSON.parse(match[0])
+        : {
+            status: 'erro',
+            mensagem: 'Resposta inválida do servidor.'
+          };
+    }
+
+    if (!dados || dados.status !== 'sucesso') {
+      showToast(
+        'Erro',
+        dados && dados.mensagem
+          ? dados.mensagem
+          : 'Não foi possível atualizar a ferramenta.',
+        '❌',
+        'bg-red-600/30 border-red-500'
+      );
+      return;
+    }
+
+    // Atualiza os dados locais
+    ferramentaAtual.Descrição = nome;
+    ferramentaAtual.Descricao = nome;
+    ferramentaAtual.Nome = nome;
+
+    ferramentaAtual.Categoria = categoria;
+    ferramentaAtual.categoria = categoria;
+
+    ferramentaAtual.Status = statusAtual;
+    ferramentaAtual.status = statusAtual;
+
+    ferramentaAtual.QrCode = qrCode;
+    ferramentaAtual.qrCode = qrCode;
+
+    renderizarListaFerramentas();
+    renderizarDashboard();
+
+    fecharDetalheFerramenta();
+
+    showToast(
+      'Sucesso',
+      'Ferramenta atualizada com sucesso.',
+      '✅',
+      'bg-emerald-600/30 border-emerald-500'
+    );
+
+  } catch (erro) {
+
+    showToast(
+      'Erro',
+      'Falha de conexão: ' + erro.message,
+      '❌',
+      'bg-red-600/30 border-red-500'
+    );
+
+  }
+}
+
+
 
     function imprimirEtiquetaDetalheQrCode() {
       if (detalheFerramentaIndex === null) return;
@@ -1670,6 +2168,40 @@
         showToast('Aviso', 'Preencha ID e Nome da ferramenta.', 'warning', 'bg-yellow-500');
         return;
       }
+const idNormalizado = id.trim().toUpperCase();
+
+const ferramentaDuplicada =
+  baseDeDados.ferramentas.find(function (f) {
+
+    const idExistente =
+      String(
+        f.ID ||
+        f.id ||
+        f.ID_Ferramenta ||
+        f.codigo ||
+        ""
+      )
+      .trim()
+      .toUpperCase();
+
+    return idExistente === idNormalizado;
+  });
+
+if (ferramentaDuplicada) {
+
+  showToast(
+    'ID já cadastrado',
+    'A ferramenta com o ID "' + idNormalizado + '" já existe.',
+    '⚠️',
+    'bg-red-600/30 border-red-500'
+  );
+
+  idInput.focus();
+  idInput.select();
+
+  return;
+}
+
       let qrCode = '';
       if (qrcodePreview && qrcodePreview.tagName === 'IMG' && qrcodePreview.src) {
         qrCode = qrcodePreview.src;
